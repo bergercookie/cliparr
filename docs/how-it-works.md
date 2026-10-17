@@ -21,6 +21,8 @@ For each clip: the Jellyfin item id, the title at the time you saved it, start a
 
 Sessions last 30 days. Only a hash of your Cliparr token is stored, so a stolen database cannot be used to log in as someone. The Jellyfin token must be stored in clear text, because Cliparr has to present it to Jellyfin: protect the data volume like you protect Jellyfin's own data.
 
+The [browser extension](extension.md) skips the password step: it runs inside Jellyfin's web page, which already holds the user's Jellyfin token, and sends it as `Authorization: Jellyfin <token>`. Cliparr asks Jellyfin (`/Users/Me`) whose token it is, caches the answer for five minutes, and then proceeds exactly as after a password login. Nothing is stored, and API keys, which belong to no user, are refused.
+
 With [single sign-on](sso.md) the proxy vouches for the user instead, and Cliparr uses an API key. Everything else stays the same.
 
 ## Preview pictures
@@ -59,4 +61,4 @@ All endpoints return JSON and need a login, except the first three.
 | `POST /api/clips/{id}/jellyfin/play` | Play the clip on a Jellyfin device: `{"deviceId": "..."}` |
 | `POST /api/clips/{id}/jellyfin/resume` | Set the Jellyfin resume point to the clip start |
 
-Send the token as `Authorization: Bearer <token>`.
+Send the token as `Authorization: Bearer <token>`, or a Jellyfin token as `Authorization: Jellyfin <token>`.

@@ -91,9 +91,9 @@ Open `https://cliparr.example.com` in a private window. You should be sent to Au
 
 If you see "your SSO username does not match any Jellyfin user", create or rename the user so both names match.
 
-## The apps cannot do SSO
+## The apps and the browser extension cannot do SSO
 
-The Android and Linux apps cannot complete an Authelia login. Give them a second host name that skips Authelia and uses the normal Jellyfin password login:
+The Android and Linux apps and the [browser extension](extension.md) cannot complete an Authelia login. Give them a second host name that skips Authelia and uses the normal Jellyfin password login:
 
 ```
 app.cliparr.example.com {
@@ -104,7 +104,7 @@ app.cliparr.example.com {
 
 **The `request_header -Remote-User` line is essential.** Without it, anyone could send `Remote-User: alice` to this host name, and because the request comes from your trusted proxy, Cliparr would believe it. The automated test suite checks this setup.
 
-This host name exposes Cliparr's Jellyfin password login to the internet, as Jellyfin's own login page is. If you do not use the apps, do not create it. Users without a Jellyfin password cannot use the apps.
+This host name exposes Cliparr's Jellyfin password login to the internet, as Jellyfin's own login page is. If you use neither the apps nor the extension, do not create it. The apps need a Jellyfin password; the extension needs none, because it uses the Jellyfin login of the open Jellyfin tab.
 
 ## Security checklist
 

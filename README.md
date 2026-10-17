@@ -10,6 +10,7 @@ Bookmark the moments of your Jellyfin movies and shows that you want to see agai
 - Pick any movie or episode, mark the start and end while watching, add a quote and a note.
 - Each bookmark shows a preview picture of the scene.
 - Open a bookmark in Cliparr, or at the exact time in Jellyfin on your TV, phone or computer.
+- A browser extension adds a Bookmark button to Jellyfin's own player.
 - Search and filter all your bookmarks from one page.
 - Self-hosted: one small container, one SQLite file.
 - Works with single sign-on (Authelia and similar) behind a reverse proxy.
@@ -57,6 +58,7 @@ Open <http://localhost:8080> and log in with your Jellyfin username and password
 | Serve it over HTTPS with Caddy                 | [Reverse proxy and HTTPS](docs/reverse-proxy.md)  |
 | Use Authelia or another SSO provider           | [Single sign-on](docs/sso.md)                     |
 | Install the Android or Linux app               | [Apps](docs/apps.md)                              |
+| Bookmark from Jellyfin's web player            | [Browser extension](docs/extension.md)            |
 | Fix a problem                                  | [Troubleshooting](docs/troubleshooting.md)        |
 | Understand how it works                        | [How it works](docs/how-it-works.md)              |
 | Hack on Cliparr                                | [Development](docs/development.md)                |
@@ -66,4 +68,4 @@ The same pages are published at <https://bergercookie.github.io/cliparr/>.
 
 ## Status
 
-Cliparr is young. Planned next: a browser extension that adds a "save this moment" button to the Jellyfin web player.
+Cliparr is young. The browser extension is checked against a stand-in for Jellyfin's web player; real-world reports are welcome.

@@ -15,6 +15,7 @@ configuration
 reverse-proxy
 sso
 apps
+extension
 troubleshooting
 ```
 

@@ -9,6 +9,7 @@ from a Jellyfin library. Users log in with their Jellyfin credentials.
 
 - `server/` Go backend (stdlib `net/http`, SQLite). Serves the API and the web UI.
 - `app/` Flutter frontend (web, Android, Linux).
+- `extension/` Chrome/Firefox extension for Jellyfin's web player (plain JS, no bundler; logic in `lib.js` with Node tests).
 - `docs/` Markdown docs, built with Sphinx + MyST.
 - `docker/`, `packaging/`, `scripts/`, `.github/workflows/` build and release.
 
@@ -54,6 +55,12 @@ Everything goes through the `justfile`. Do not invent your own commands.
   otherwise Android refuses in-place updates. Never publish a debug-signed APK. See `docs/releasing.md`.
 - `just upgrade-static OLD NEW` and `just upgrade-test` check that an update installs; keep them passing.
 - The app learns its own version from `--dart-define=CLIPARR_VERSION` (set by the `just` recipes).
+
+## Browser extension
+
+- Keep it dependency-free: no bundler, no npm packages. Shared logic goes in `extension/lib.js` and needs a test.
+- It must ask for access to the user's own Jellyfin and Cliparr addresses only, never `<all_urls>`.
+- Run `just lint-extension`, `just test-extension` and `just e2e-extension` when you touch it.
 
 ## Versions and releases
 

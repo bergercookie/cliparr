@@ -1,5 +1,7 @@
 # Apps
 
+There is also a [browser extension](extension.md) that bookmarks moments straight from Jellyfin's web player.
+
 The web interface needs no installation: open your server's address in a browser. The apps are for phones and desktops where you prefer a native player or need formats the browser cannot play.
 
 All builds are attached to each [GitHub release](https://github.com/bergercookie/cliparr/releases).
@@ -11,7 +13,7 @@ All builds are attached to each [GitHub release](https://github.com/bergercookie
 3. Start Cliparr and enter the address of your server, for example `http://192.168.1.10:8080` or `https://cliparr.example.com`. Plain `http://` addresses work, since most home servers have no certificate.
 4. Log in with your Jellyfin account.
 
-If your server is behind single sign-on, use the separate app host name described in [Single sign-on](sso.md#the-apps-cannot-do-sso).
+If your server is behind single sign-on, use the separate app host name described in [Single sign-on](sso.md#the-apps-and-the-browser-extension-cannot-do-sso).
 
 ## Linux
 

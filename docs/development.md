@@ -21,6 +21,7 @@ Building the Android app additionally needs a JDK 17 and the Android SDK; Devbox
 | --- | --- |
 | `server/` | Go backend. `internal/api` handlers, `internal/store` SQLite, `internal/jellyfin` client, `internal/fakejellyfin` test double |
 | `app/` | Flutter app for web, Android and Linux |
+| `extension/` | Browser extension (plain JavaScript, no build tools): `lib.js` logic, `content.js` button, `background.js`, `options.*` |
 | `e2e/` | End-to-end test: real server behind Caddy and a stand-in for Authelia |
 | `docker/` | Server image and the troubleshooting sidecar |
 | `packaging/` | Scripts that build the `.deb` and AppImage |
@@ -45,6 +46,7 @@ To work on the interface with the fake Jellyfin: run `just dev`, build the web a
 
 - Go tests live next to the code. API tests run the real handlers against `fakejellyfin`, so they need no network. Tests of the preview pictures run the real `ffmpeg` and skip themselves when it is not installed (Devbox and CI have it).
 - Flutter tests cover the API client, version logic, the update checker and the screens.
+- `just test-extension` runs the extension's logic tests with Node. `just e2e-extension` loads the extension into a real Chromium, plays a video on a stand-in Jellyfin web player and checks what reaches Cliparr. `just lint-extension` validates the Firefox build with `web-ext`.
 - `e2e/run.sh` starts the real binary and checks password login, SSO through Caddy, and header spoofing. The Authelia in that test is a small stand-in (`server/cmd/fakeauthelia`) that follows Authelia's forward-auth contract; it is not Authelia itself.
 - `just coverage` prints coverage after `just test`.
 
@@ -53,6 +55,12 @@ Add a test with every behaviour change. See `AGENTS.md` for the conventions.
 ## Screenshots
 
 `just screenshots` rebuilds the web app, starts the server against the fake Jellyfin (which streams a generated one-minute test video, so it needs `ffmpeg`) with a few sample clips, and photographs the main screens in a headless Chromium into `docs/screenshots/` (light, dark and phone-sized). It uses Playwright, which downloads a Chromium on first run; set `CHROMIUM=/path/to/chromium` to use one you already have. Re-run it after UI changes and commit the new images. The sample quotes are invented on purpose, so the images do not attribute real lines to real films.
+
+## Browser extension
+
+The code lives in `extension/` and is loaded as it is; `just package-extension <version>` makes the Chrome and Firefox zips (they differ only in the generated manifest). To try it by hand in Chrome, run `scripts/build-extension.sh`, then load `build/extension/chrome` as an unpacked extension. `SCREENSHOT_DIR=docs/screenshots just e2e-extension` refreshes the picture used in the docs.
+
+Chromium and Firefox parse some input differently (for example a space in a host name), so keep decisions like "is this a valid address" in `lib.js` with explicit rules and unit tests, not in the URL parser alone.
 
 ## Android upgrade test
 
