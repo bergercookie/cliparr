@@ -25,7 +25,8 @@ jobs:
         with:
           full: "false"
       - uses: jetify-com/devbox-install-action@v0.15.0
-      - run: devbox run -- env PATH="$FLUTTER_ROOT/bin:$PATH" just lint
+      # Single quotes: $PATH must be expanded inside devbox, where it holds devbox's tools.
+      - run: devbox run -- sh -c 'PATH="$FLUTTER_ROOT/bin:$PATH" just lint'
 
   test:
     runs-on: ubuntu-latest
@@ -35,7 +36,7 @@ jobs:
         with:
           full: "false"
       - uses: jetify-com/devbox-install-action@v0.15.0
-      - run: devbox run -- env PATH="$FLUTTER_ROOT/bin:$PATH" just test
+      - run: devbox run -- sh -c 'PATH="$FLUTTER_ROOT/bin:$PATH" just test'
       - run: devbox run -- just coverage
       # Pull request comment and README badge come from Codecov. Needs the
       # CODECOV_TOKEN secret (see docs/development.md); without it the upload is skipped.
