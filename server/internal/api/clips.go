@@ -40,15 +40,23 @@ func (s *Server) listClips(w http.ResponseWriter, r *http.Request, p principal) 
 }
 
 func (s *Server) getClip(w http.ResponseWriter, r *http.Request, p principal) {
+	if clip, ok := s.ownedClip(w, r, p); ok {
+		writeJSON(w, http.StatusOK, clip)
+	}
+}
+
+// ownedClip loads the clip named in the address if it belongs to the caller,
+// and writes an error response otherwise.
+func (s *Server) ownedClip(w http.ResponseWriter, r *http.Request, p principal) (store.Clip, bool) {
 	id, ok := clipID(w, r)
 	if !ok {
-		return
+		return store.Clip{}, false
 	}
 	clip, err := s.store.GetClip(r.Context(), p.UserID, id)
 	if s.clipError(w, r, err) {
-		return
+		return store.Clip{}, false
 	}
-	writeJSON(w, http.StatusOK, clip)
+	return clip, true
 }
 
 func (s *Server) createClip(w http.ResponseWriter, r *http.Request, p principal) {
@@ -110,6 +118,7 @@ func (s *Server) updateClip(w http.ResponseWriter, r *http.Request, p principal)
 	if s.clipError(w, r, err) {
 		return
 	}
+	s.removeThumbnails(id)
 	writeJSON(w, http.StatusOK, updated)
 }
 
@@ -121,6 +130,7 @@ func (s *Server) deleteClip(w http.ResponseWriter, r *http.Request, p principal)
 	if s.clipError(w, r, s.store.DeleteClip(r.Context(), p.UserID, id)) {
 		return
 	}
+	s.removeThumbnails(id)
 	w.WriteHeader(http.StatusNoContent)
 }
 

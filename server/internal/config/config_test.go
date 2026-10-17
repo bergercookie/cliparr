@@ -17,6 +17,28 @@ func TestFromEnv(t *testing.T) {
 	if cfg.JellyfinURL != "http://jf:8096" || cfg.Listen != ":8080" || cfg.DataDir != "./data" {
 		t.Errorf("unexpected config: %+v", cfg)
 	}
+	if cfg.JellyfinPublicURL != "http://jf:8096" || cfg.FFmpeg != "ffmpeg" {
+		t.Errorf("unexpected defaults: public %q, ffmpeg %q", cfg.JellyfinPublicURL, cfg.FFmpeg)
+	}
+}
+
+func TestPublicURLCanDifferFromTheInternalOne(t *testing.T) {
+	cfg, err := FromEnv(env(map[string]string{
+		"CLIPARR_JELLYFIN_URL":        "http://jellyfin:8096",
+		"CLIPARR_JELLYFIN_PUBLIC_URL": "https://jellyfin.example.com/",
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.JellyfinURL != "http://jellyfin:8096" || cfg.JellyfinPublicURL != "https://jellyfin.example.com" {
+		t.Errorf("unexpected URLs: %q and %q", cfg.JellyfinURL, cfg.JellyfinPublicURL)
+	}
+	if _, err := FromEnv(env(map[string]string{
+		"CLIPARR_JELLYFIN_URL":        "http://jellyfin:8096",
+		"CLIPARR_JELLYFIN_PUBLIC_URL": "jellyfin.example.com",
+	})); err == nil {
+		t.Error("expected an error for a public URL without a scheme")
+	}
 }
 
 func TestFromEnvRejectsBadURL(t *testing.T) {

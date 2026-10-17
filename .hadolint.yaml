@@ -1,3 +1,5 @@
 ignored:
   # Pinning apt package versions makes builds break when Debian updates them.
   - DL3008
+  # Same for apk packages.
+  - DL3018

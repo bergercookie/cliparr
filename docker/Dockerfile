@@ -37,18 +37,20 @@ COPY server/ ./
 COPY --from=web /src/app/build/web/ internal/web/dist/
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
     go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /out/cliparr ./cmd/cliparr
-RUN mkdir /out/data
 
-# --- 3. Runtime image: just the binary ---
-FROM gcr.io/distroless/static-debian12:nonroot
+# --- 3. Runtime image: the binary plus ffmpeg for the clip preview pictures ---
+FROM alpine:3.22
 LABEL org.opencontainers.image.source="https://github.com/bergercookie/cliparr" \
       org.opencontainers.image.description="Save and replay your favorite Jellyfin moments"
+RUN apk add --no-cache ffmpeg ca-certificates \
+    && adduser -D -H -u 65532 cliparr \
+    && mkdir /data \
+    && chown cliparr /data
 COPY --from=server /out/cliparr /usr/local/bin/cliparr
-COPY --from=server --chown=nonroot:nonroot /out/data /data
 ENV CLIPARR_DATA_DIR=/data \
     CLIPARR_LISTEN=:8080
 VOLUME /data
 EXPOSE 8080
-USER nonroot
+USER cliparr
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s CMD ["cliparr", "healthcheck"]
 ENTRYPOINT ["cliparr"]

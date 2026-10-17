@@ -4,7 +4,7 @@
 #   1. direct password login (what the Android app uses)
 #   2. SSO: Caddy + (fake) Authelia in front of Cliparr, as in docs/sso-authelia.md
 #
-# Requires: go, curl, jq, caddy.
+# Requires: go, curl, jq, caddy. With ffmpeg installed it also checks real thumbnails.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -63,11 +63,23 @@ json() { curl -fs "$@"; }
 echo "building..."
 (cd "$ROOT/server" && go build -o "$WORK/bin/" ./cmd/...)
 
-start jellyfin "$WORK/bin/fakejellyfin" -listen "127.0.0.1:$E2E_JELLYFIN_PORT"
+# With ffmpeg, Jellyfin serves a real video so thumbnails can be made from it.
+JELLYFIN_ARGS=(-listen "127.0.0.1:$E2E_JELLYFIN_PORT")
+HAVE_FFMPEG=no
+if command -v ffmpeg >/dev/null; then
+  HAVE_FFMPEG=yes
+  "$ROOT/scripts/make-sample-video.sh" "$WORK/sample.webm"
+  JELLYFIN_ARGS+=(-video "$WORK/sample.webm")
+else
+  echo "ffmpeg not found: skipping the thumbnail picture checks."
+fi
+
+start jellyfin "$WORK/bin/fakejellyfin" "${JELLYFIN_ARGS[@]}"
 start authelia "$WORK/bin/fakeauthelia" -listen "127.0.0.1:$E2E_AUTHELIA_PORT"
 
 cliparr() { # cliparr NAME PORT TRUSTED_NETWORK
   CLIPARR_JELLYFIN_URL="http://127.0.0.1:$E2E_JELLYFIN_PORT" \
+    CLIPARR_JELLYFIN_PUBLIC_URL="https://jellyfin.example.com" \
     CLIPARR_LISTEN="127.0.0.1:$2" \
     CLIPARR_DATA_DIR="$WORK/data-$1" \
     CLIPARR_PROXY_AUTH_HEADER="Remote-User" \
@@ -100,10 +112,45 @@ check "token identifies alice" alice "$(json "$DIRECT/api/me" -H "Authorization:
 check "password login is not 'via proxy'" false \
   "$(json "$DIRECT/api/me" -H "Authorization: Bearer $TOKEN" | jq -r .viaProxy)"
 CLIP="$(json -X POST "$DIRECT/api/clips" -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
-  -d '{"itemId":"movie-rocky","startMs":1000,"endMs":9000,"quote":"Yo Adrian!","tags":["classic"]}')"
+  -d '{"itemId":"movie-rocky","startMs":5000,"endMs":9000,"quote":"Yo Adrian!","tags":["classic"]}')"
+CLIP_ID="$(jq -r .id <<<"$CLIP")"
 check "clip gets the title from Jellyfin" "Rocky (1976)" "$(jq -r .title <<<"$CLIP")"
 check "stream works with range requests" 206 \
   "$(status "$DIRECT/api/items/movie-rocky/stream" -H "Authorization: Bearer $TOKEN" -H 'Range: bytes=0-9')"
+
+echo
+echo "== bookmark previews and opening in Jellyfin =="
+THUMB_HEADERS="$WORK/thumb.headers"
+THUMB_BODY="$WORK/thumb.body"
+check "thumbnail request succeeds" 200 \
+  "$(curl -s -D "$THUMB_HEADERS" -o "$THUMB_BODY" -w '%{http_code}' "$DIRECT/api/clips/$CLIP_ID/thumbnail" -H "Authorization: Bearer $TOKEN")"
+if [[ "$HAVE_FFMPEG" == yes ]]; then
+  check "thumbnail is a JPEG frame of the video" ffd8 "$(head -c 2 "$THUMB_BODY" | od -An -tx1 | tr -d ' \n')"
+  check "thumbnail is not the poster fallback" "" "$(grep -i '^x-cliparr-thumbnail' "$THUMB_HEADERS" || true)"
+else
+  check "thumbnail falls back to the poster without ffmpeg" "poster" \
+    "$(grep -i '^x-cliparr-thumbnail' "$THUMB_HEADERS" | tr -d '\r' | awk '{print $2}')"
+fi
+check "bob cannot see alice's thumbnail" 404 \
+  "$(status "$DIRECT/api/clips/$CLIP_ID/thumbnail" -H "Authorization: Bearer $(json -X POST "$DIRECT/api/auth/login" \
+    -H 'Content-Type: application/json' -d '{"username":"bob","password":"pw"}' | jq -r .token)")"
+
+HANDOFF="$(json "$DIRECT/api/clips/$CLIP_ID/jellyfin" -H "Authorization: Bearer $TOKEN")"
+check "Jellyfin link uses the public address" "https://jellyfin.example.com/web/index.html#!/details?id=movie-rocky&serverId=fake-server-id" \
+  "$(jq -r .webUrl <<<"$HANDOFF")"
+check "a controllable Jellyfin device is offered" "Living Room TV" "$(jq -r '.devices[0].name' <<<"$HANDOFF")"
+check "playing on the device succeeds" 204 \
+  "$(status -X POST "$DIRECT/api/clips/$CLIP_ID/jellyfin/play" -H "Authorization: Bearer $TOKEN" \
+    -H 'Content-Type: application/json' -d '{"deviceId":"session-tv"}')"
+check "Jellyfin was told to start at the exact time (5s = 50,000,000 ticks)" "movie-rocky 50000000" \
+  "$(curl -fs "http://127.0.0.1:$E2E_JELLYFIN_PORT/_fake/last-play" | jq -r '"\(.itemId) \(.startTicks)"')"
+check "an unknown device is refused" 404 \
+  "$(status -X POST "$DIRECT/api/clips/$CLIP_ID/jellyfin/play" -H "Authorization: Bearer $TOKEN" \
+    -H 'Content-Type: application/json' -d '{"deviceId":"nope"}')"
+check "setting the resume point succeeds" 204 \
+  "$(status -X POST "$DIRECT/api/clips/$CLIP_ID/jellyfin/resume" -H "Authorization: Bearer $TOKEN")"
+check "Jellyfin now resumes at the clip start" 50000000 \
+  "$(curl -fs "http://127.0.0.1:$E2E_JELLYFIN_PORT/_fake/resume?user=alice&item=movie-rocky" | jq -r .ticks)"
 
 echo
 echo "== SSO through Caddy + Authelia =="
@@ -131,6 +178,11 @@ check "SSO bob cannot stream it (API key is limited to his view)" 404 \
 check "SSO bob cannot clip it" 404 \
   "$(status -b "$JAR_BOB" -X POST "$VIA_PROXY/api/clips" -H 'Content-Type: application/json' \
     -d '{"itemId":"movie-secret","startMs":0,"endMs":5000}')"
+
+SSO_CLIP_ID="$(json -b "$JAR_ALICE" "$VIA_PROXY/api/clips" | jq -r '[.[] | select(.itemId == "movie-secret")][0].id')"
+check "SSO alice gets the thumbnail of her private movie" 200 "$(status -b "$JAR_ALICE" "$VIA_PROXY/api/clips/$SSO_CLIP_ID/thumbnail")"
+check "SSO alice can see Jellyfin devices for her clip" "Living Room TV" \
+  "$(json -b "$JAR_ALICE" "$VIA_PROXY/api/clips/$SSO_CLIP_ID/jellyfin" | jq -r '.devices[0].name')"
 
 curl -fs -c "$WORK/mallory.jar" "$AUTHELIA/login?user=mallory"
 check "SSO user without a Jellyfin account is refused" 403 "$(status -b "$WORK/mallory.jar" "$VIA_PROXY/api/me")"

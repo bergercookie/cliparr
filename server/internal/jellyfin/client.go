@@ -72,6 +72,14 @@ type Item struct {
 	Type       string // "Movie" or "Episode"
 	RuntimeMs  int64
 	SeriesName string
+	ResumeMs   int64 // where this user would resume playback, 0 if not started
+}
+
+// Device is a running Jellyfin client that Cliparr can tell what to play.
+type Device struct {
+	ID     string
+	Name   string // e.g. "Living Room TV"
+	Client string // e.g. "Jellyfin Android TV"
 }
 
 // Authenticate logs a user in with their Jellyfin credentials.
@@ -138,6 +146,7 @@ func (c *Client) items(ctx context.Context, token string, q url.Values) ([]Item,
 			IndexNumber       int
 			ProductionYear    int
 			RunTimeTicks      int64
+			UserData          struct{ PlaybackPositionTicks int64 }
 		}
 	}
 	if err := c.do(ctx, http.MethodGet, "/Items", token, q, nil, &resp); err != nil {
@@ -155,9 +164,79 @@ func (c *Client) items(ctx context.Context, token string, q url.Values) ([]Item,
 		items = append(items, Item{
 			ID: r.Id, Title: title, Type: r.Type, SeriesName: r.SeriesName,
 			RuntimeMs: r.RunTimeTicks / ticksPerMs,
+			ResumeMs:  r.UserData.PlaybackPositionTicks / ticksPerMs,
 		})
 	}
 	return items, nil
+}
+
+// ServerID returns the unique id of the Jellyfin server. Jellyfin's web
+// client needs it in links. The endpoint is public, so no login is required.
+func (c *Client) ServerID(ctx context.Context) (string, error) {
+	var info struct{ Id string }
+	if err := c.do(ctx, http.MethodGet, "/System/Info/Public", "", nil, nil, &info); err != nil {
+		return "", err
+	}
+	return info.Id, nil
+}
+
+// Devices lists the running Jellyfin clients (TVs, phones, browser tabs) that
+// the user is allowed to remote-control.
+func (c *Client) Devices(ctx context.Context, token, userID string) ([]Device, error) {
+	var sessions []struct {
+		Id                    string
+		DeviceName            string
+		Client                string
+		SupportsRemoteControl bool
+	}
+	query := url.Values{"controllableByUserId": {userID}}
+	if err := c.do(ctx, http.MethodGet, "/Sessions", token, query, nil, &sessions); err != nil {
+		return nil, err
+	}
+	devices := []Device{}
+	for _, s := range sessions {
+		if s.SupportsRemoteControl {
+			devices = append(devices, Device{ID: s.Id, Name: s.DeviceName, Client: s.Client})
+		}
+	}
+	return devices, nil
+}
+
+// PlayOnDevice makes a running Jellyfin client start playing an item at a
+// given position. This is the one way to reach an exact time, because
+// Jellyfin's web addresses have no start-time parameter.
+func (c *Client) PlayOnDevice(ctx context.Context, token, deviceID, itemID string, startMs int64) error {
+	query := url.Values{
+		"playCommand":        {"PlayNow"},
+		"itemIds":            {itemID},
+		"startPositionTicks": {strconv.FormatInt(startMs*ticksPerMs, 10)},
+	}
+	return c.do(ctx, http.MethodPost, "/Sessions/"+url.PathEscape(deviceID)+"/Playing", token, query, nil, nil)
+}
+
+// SetResumePoint stores where the user "left off" in an item, so that
+// Jellyfin's Resume button starts playback at that position.
+func (c *Client) SetResumePoint(ctx context.Context, token, userID, itemID string, positionMs int64) error {
+	body, err := json.Marshal(map[string]int64{"PlaybackPositionTicks": positionMs * ticksPerMs})
+	if err != nil {
+		return err
+	}
+	// Jellyfin 10.9 moved this endpoint; fall back to the older address.
+	path := "/UserItems/" + url.PathEscape(itemID) + "/UserData"
+	err = c.do(ctx, http.MethodPost, path, token, url.Values{"userId": {userID}}, body, nil)
+	if errors.Is(err, ErrNotFound) {
+		path = "/Users/" + url.PathEscape(userID) + "/Items/" + url.PathEscape(itemID) + "/UserData"
+		err = c.do(ctx, http.MethodPost, path, token, nil, body, nil)
+	}
+	return err
+}
+
+// StreamSource returns the address of an item's original video file and the
+// Authorization header that unlocks it, for tools such as ffmpeg that read the
+// file directly from Jellyfin.
+func (c *Client) StreamSource(token, itemID string) (rawURL, authHeader string) {
+	u := c.endpoint("/Videos/"+url.PathEscape(itemID)+"/stream", url.Values{"static": {"true"}})
+	return u.String(), c.authHeader(token)
 }
 
 // ProxyStream forwards the original video file of an item to w. Range
@@ -215,6 +294,9 @@ func (c *Client) do(ctx context.Context, method, path, token string, query url.V
 		return ErrNotFound
 	case resp.StatusCode >= 300:
 		return fmt.Errorf("jellyfin %s %s: unexpected status %d", method, path, resp.StatusCode)
+	}
+	if out == nil {
+		return nil
 	}
 	if err := json.NewDecoder(io.LimitReader(resp.Body, 10<<20)).Decode(out); err != nil {
 		return fmt.Errorf("decode jellyfin response: %w", err)

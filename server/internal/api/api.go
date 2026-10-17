@@ -14,6 +14,7 @@ import (
 	"github.com/bergercookie/cliparr/server/internal/config"
 	"github.com/bergercookie/cliparr/server/internal/jellyfin"
 	"github.com/bergercookie/cliparr/server/internal/store"
+	"github.com/bergercookie/cliparr/server/internal/thumbnail"
 )
 
 const (
@@ -32,6 +33,11 @@ type Options struct {
 	Log       *slog.Logger
 	Web       fs.FS // nil when no frontend is bundled
 	ProxyAuth config.ProxyAuth
+
+	// JellyfinPublicURL is Jellyfin's address as seen from users' browsers.
+	JellyfinPublicURL string
+	// Thumbnails makes clip preview pictures; nil means previews fall back to posters.
+	Thumbnails *thumbnail.Maker
 }
 
 // Server wires the HTTP routes to the store and the Jellyfin client.
@@ -43,16 +49,22 @@ type Server struct {
 	web     fs.FS
 	proxy   config.ProxyAuth
 
+	jellyfinPublicURL string
+	thumbs            *thumbnail.Maker
+
 	proxyUsers   *ttlCache[jellyfin.User] // username -> Jellyfin user
 	visibleItems *ttlCache[struct{}]      // "userID/itemID" the user may see
+	serverIDs    *ttlCache[string]        // "id" -> Jellyfin server id
 }
 
 // New returns the root handler.
 func New(o Options) http.Handler {
 	s := &Server{
 		store: o.Store, jf: o.Jellyfin, version: o.Version, log: o.Log, web: o.Web, proxy: o.ProxyAuth,
+		jellyfinPublicURL: o.JellyfinPublicURL, thumbs: o.Thumbnails,
 		proxyUsers:   newTTLCache[jellyfin.User](cacheTTL),
 		visibleItems: newTTLCache[struct{}](cacheTTL),
+		serverIDs:    newTTLCache[string](cacheTTL),
 	}
 
 	mux := http.NewServeMux()
@@ -70,6 +82,10 @@ func New(o Options) http.Handler {
 	mux.Handle("GET /api/clips/{id}", s.authed(s.getClip))
 	mux.Handle("PUT /api/clips/{id}", s.authed(s.updateClip))
 	mux.Handle("DELETE /api/clips/{id}", s.authed(s.deleteClip))
+	mux.Handle("GET /api/clips/{id}/thumbnail", s.authed(s.clipThumbnail))
+	mux.Handle("GET /api/clips/{id}/jellyfin", s.authed(s.clipHandoff))
+	mux.Handle("POST /api/clips/{id}/jellyfin/play", s.authed(s.clipPlayOnDevice))
+	mux.Handle("POST /api/clips/{id}/jellyfin/resume", s.authed(s.clipSetResumePoint))
 	mux.Handle("/", s.frontend())
 	return s.logRequests(mux)
 }

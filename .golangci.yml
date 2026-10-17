@@ -21,8 +21,8 @@ linters:
 
       - path: _test\.go
         linters: [gosec, noctx]
-      # Dev-only helper servers, never exposed.
-      - path: cmd/fake
+      # Test tooling and dev-only helper servers, never exposed or shipped.
+      - path: (cmd/fake|internal/fakejellyfin|internal/testutil)
         linters: [gosec]
 
 formatters:

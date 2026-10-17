@@ -13,6 +13,11 @@ import (
 type Config struct {
 	// JellyfinURL is the base URL of the Jellyfin server, without trailing slash.
 	JellyfinURL string
+	// JellyfinPublicURL is the address of Jellyfin as seen from users' browsers.
+	// Links that open Jellyfin use it; it defaults to JellyfinURL.
+	JellyfinPublicURL string
+	// FFmpeg is the ffmpeg program used to make clip thumbnails ("off" disables them).
+	FFmpeg string
 	// Listen is the address the HTTP server binds to.
 	Listen string
 	// DataDir is the directory holding the SQLite database.
@@ -52,13 +57,17 @@ func FromEnv(getenv func(string) string) (Config, error) {
 		JellyfinURL: strings.TrimRight(getenv("CLIPARR_JELLYFIN_URL"), "/"),
 		Listen:      withDefault(getenv("CLIPARR_LISTEN"), ":8080"),
 		DataDir:     withDefault(getenv("CLIPARR_DATA_DIR"), "./data"),
+		FFmpeg:      withDefault(getenv("CLIPARR_FFMPEG"), "ffmpeg"),
 	}
 	if cfg.JellyfinURL == "" {
 		return Config{}, errors.New("CLIPARR_JELLYFIN_URL is required")
 	}
-	u, err := url.Parse(cfg.JellyfinURL)
-	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
-		return Config{}, fmt.Errorf("CLIPARR_JELLYFIN_URL %q is not a valid http(s) URL", cfg.JellyfinURL)
+	if err := checkHTTPURL("CLIPARR_JELLYFIN_URL", cfg.JellyfinURL); err != nil {
+		return Config{}, err
+	}
+	cfg.JellyfinPublicURL = withDefault(strings.TrimRight(getenv("CLIPARR_JELLYFIN_PUBLIC_URL"), "/"), cfg.JellyfinURL)
+	if err := checkHTTPURL("CLIPARR_JELLYFIN_PUBLIC_URL", cfg.JellyfinPublicURL); err != nil {
+		return Config{}, err
 	}
 	proxy, err := proxyAuthFromEnv(getenv)
 	if err != nil {
@@ -66,6 +75,14 @@ func FromEnv(getenv func(string) string) (Config, error) {
 	}
 	cfg.ProxyAuth = proxy
 	return cfg, nil
+}
+
+func checkHTTPURL(name, value string) error {
+	u, err := url.Parse(value)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		return fmt.Errorf("%s %q is not a valid http(s) URL", name, value)
+	}
+	return nil
 }
 
 func proxyAuthFromEnv(getenv func(string) string) (ProxyAuth, error) {

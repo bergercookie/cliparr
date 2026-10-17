@@ -19,13 +19,19 @@ import (
 
 // testEnv is a Cliparr server wired to the fake Jellyfin.
 type testEnv struct {
-	t   *testing.T
-	url string
+	t    *testing.T
+	url  string
+	fake *fakejellyfin.Server // the fake Jellyfin behind Cliparr
 }
 
 func newEnv(t *testing.T, opts ...func(*api.Options)) *testEnv {
 	t.Helper()
-	fake := httptest.NewServer(fakejellyfin.New())
+	return newEnvWithFake(t, fakejellyfin.New(), opts...)
+}
+
+func newEnvWithFake(t *testing.T, jellyfinFake *fakejellyfin.Server, opts ...func(*api.Options)) *testEnv {
+	t.Helper()
+	fake := httptest.NewServer(jellyfinFake)
 	t.Cleanup(fake.Close)
 
 	st, err := store.Open(t.Context(), filepath.Join(t.TempDir(), "test.db"))
@@ -44,7 +50,7 @@ func newEnv(t *testing.T, opts ...func(*api.Options)) *testEnv {
 	}
 	srv := httptest.NewServer(api.New(o))
 	t.Cleanup(srv.Close)
-	return &testEnv{t: t, url: srv.URL}
+	return &testEnv{t: t, url: srv.URL, fake: jellyfinFake}
 }
 
 // call sends a JSON request, optionally authenticated with a bearer token, and

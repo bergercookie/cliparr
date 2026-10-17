@@ -19,6 +19,7 @@ import (
 	"github.com/bergercookie/cliparr/server/internal/config"
 	"github.com/bergercookie/cliparr/server/internal/jellyfin"
 	"github.com/bergercookie/cliparr/server/internal/store"
+	"github.com/bergercookie/cliparr/server/internal/thumbnail"
 	"github.com/bergercookie/cliparr/server/internal/web"
 )
 
@@ -86,10 +87,19 @@ func run(log *slog.Logger) error {
 		return err
 	}
 
+	thumbs, err := thumbnail.New(cfg.FFmpeg, filepath.Join(cfg.DataDir, "thumbnails"))
+	if err != nil {
+		return err
+	}
+	if !thumbs.Enabled() {
+		log.Warn("ffmpeg not found or disabled: clip previews will show movie posters instead", "setting", cfg.FFmpeg)
+	}
+
 	srv := &http.Server{
 		Addr: cfg.Listen,
 		Handler: api.New(api.Options{
 			Store: st, Jellyfin: jf, Version: version, Log: log, Web: web.FS(), ProxyAuth: cfg.ProxyAuth,
+			JellyfinPublicURL: cfg.JellyfinPublicURL, Thumbnails: thumbs,
 		}),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
