@@ -26,7 +26,7 @@ COPY app/ ./
 RUN flutter build web --release --dart-define=CLIPARR_VERSION=${VERSION}
 
 # --- 2. Go server (cross-compiled, no CGO) ---
-FROM --platform=$BUILDPLATFORM golang:1.26-bookworm AS server
+FROM --platform=$BUILDPLATFORM golang:1.27-bookworm AS server
 ARG TARGETOS
 ARG TARGETARCH
 ARG VERSION=dev
