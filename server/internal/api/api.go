@@ -55,6 +55,7 @@ type Server struct {
 	proxyUsers   *ttlCache[jellyfin.User] // username -> Jellyfin user
 	visibleItems *ttlCache[struct{}]      // "userID/itemID" the user may see
 	serverIDs    *ttlCache[string]        // "id" -> Jellyfin server id
+	tokenUsers   *ttlCache[jellyfin.User] // hash of a Jellyfin token -> its user
 }
 
 // New returns the root handler.
@@ -65,6 +66,7 @@ func New(o Options) http.Handler {
 		proxyUsers:   newTTLCache[jellyfin.User](cacheTTL),
 		visibleItems: newTTLCache[struct{}](cacheTTL),
 		serverIDs:    newTTLCache[string](cacheTTL),
+		tokenUsers:   newTTLCache[jellyfin.User](cacheTTL),
 	}
 
 	mux := http.NewServeMux()
@@ -102,8 +104,9 @@ type principal struct {
 type authedHandler func(w http.ResponseWriter, r *http.Request, p principal)
 
 // authed accepts, in this order: the user header of a trusted reverse proxy
-// (SSO), "Authorization: Bearer <token>" (native apps) or the session cookie
-// (the bundled web frontend).
+// (SSO), "Authorization: Jellyfin <token>" (the browser extension),
+// "Authorization: Bearer <token>" (native apps) or the session cookie (the
+// bundled web frontend).
 func (s *Server) authed(next authedHandler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p, ok, err := s.proxyPrincipal(r)
@@ -116,6 +119,19 @@ func (s *Server) authed(next authedHandler) http.Handler {
 			return
 		case ok:
 			next(w, r, p)
+			return
+		}
+
+		if jf := jellyfinTokenFrom(r); jf != "" {
+			p, err := s.tokenPrincipal(r.Context(), jf)
+			switch {
+			case errors.Is(err, jellyfin.ErrUnauthorized):
+				writeError(w, http.StatusUnauthorized, "Jellyfin does not accept this token, please log in to Jellyfin again")
+			case err != nil:
+				s.jellyfinError(w, r, err)
+			default:
+				next(w, r, p)
+			}
 			return
 		}
 

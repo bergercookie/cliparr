@@ -99,3 +99,17 @@ func TestUserByName(t *testing.T) {
 		t.Errorf("wrong key: got %v, want ErrUnauthorized", err)
 	}
 }
+
+func TestUserByToken(t *testing.T) {
+	c := newClient(t)
+
+	user, err := c.UserByToken(t.Context(), "token-alice")
+	if err != nil || user.Name != "alice" || user.ID != "id-alice" {
+		t.Errorf("got %+v, %v", user, err)
+	}
+	for _, bad := range []string{"nope", fakejellyfin.APIKey} {
+		if _, err := c.UserByToken(t.Context(), bad); !errors.Is(err, jellyfin.ErrUnauthorized) {
+			t.Errorf("token %q: got %v, want ErrUnauthorized", bad, err)
+		}
+	}
+}

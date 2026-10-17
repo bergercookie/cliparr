@@ -30,6 +30,16 @@ var ErrUnauthorized = errors.New("jellyfin: unauthorized")
 // ErrNotFound is returned when an item does not exist or is not visible to the user.
 var ErrNotFound = errors.New("jellyfin: not found")
 
+// StatusError is an unexpected HTTP status from Jellyfin.
+type StatusError struct {
+	Method, Path string
+	Code         int
+}
+
+func (e *StatusError) Error() string {
+	return fmt.Sprintf("jellyfin %s %s: unexpected status %d", e.Method, e.Path, e.Code)
+}
+
 // Client talks to a single Jellyfin server.
 type Client struct {
 	base     *url.URL
@@ -93,6 +103,22 @@ func (c *Client) Authenticate(ctx context.Context, username, password string) (S
 		return Session{}, err
 	}
 	return Session{User: User{ID: resp.User.Id, Name: resp.User.Name}, Token: resp.AccessToken}, nil
+}
+
+// UserByToken returns the user an access token belongs to. API keys are not
+// tied to a user and are rejected, so only a real user's token gets through.
+func (c *Client) UserByToken(ctx context.Context, token string) (User, error) {
+	var me struct{ Id, Name string }
+	err := c.do(ctx, http.MethodGet, "/Users/Me", token, nil, nil, &me)
+	var status *StatusError
+	if errors.As(err, &status) && status.Code == http.StatusBadRequest {
+		// Jellyfin answers 400 when the token has no user, as an API key has not.
+		return User{}, ErrUnauthorized
+	}
+	if err != nil {
+		return User{}, err
+	}
+	return User{ID: me.Id, Name: me.Name}, nil
 }
 
 // UserByName looks a user up by username (case-insensitive). It needs an
@@ -293,7 +319,7 @@ func (c *Client) do(ctx context.Context, method, path, token string, query url.V
 	case resp.StatusCode == http.StatusNotFound:
 		return ErrNotFound
 	case resp.StatusCode >= 300:
-		return fmt.Errorf("jellyfin %s %s: unexpected status %d", method, path, resp.StatusCode)
+		return &StatusError{Method: method, Path: path, Code: resp.StatusCode}
 	}
 	if out == nil {
 		return nil

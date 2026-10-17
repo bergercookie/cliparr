@@ -62,6 +62,14 @@ type Server struct {
 	mu       sync.Mutex
 	resume   map[string]int64 // "user/item" -> position in ticks
 	lastPlay *PlayCommand
+	playing  map[string]progress // device id -> what that client last reported playing
+}
+
+// progress is what a Jellyfin client reports while it plays something.
+type progress struct {
+	ItemID        string
+	PositionTicks int64
+	IsPaused      bool
 }
 
 // Option customises the fake.
@@ -91,6 +99,7 @@ func New(options ...Option) *Server {
 		video:       make([]byte, 1<<20),
 		contentType: "video/mp4",
 		resume:      map[string]int64{},
+		playing:     map[string]progress{},
 	}
 	for _, option := range options {
 		option(s)
@@ -98,11 +107,14 @@ func New(options ...Option) *Server {
 	s.mux.HandleFunc("GET /System/Info/Public", s.systemInfo)
 	s.mux.HandleFunc("POST /Users/AuthenticateByName", s.authenticate)
 	s.mux.HandleFunc("GET /Users", s.listUsers)
+	s.mux.HandleFunc("GET /Users/Me", s.me)
 	s.mux.HandleFunc("GET /Items", s.listItems)
 	s.mux.HandleFunc("GET /Videos/{id}/stream", s.stream)
 	s.mux.HandleFunc("GET /Items/{id}/Images/Primary", s.image)
 	s.mux.HandleFunc("GET /Sessions", s.listSessions)
 	s.mux.HandleFunc("POST /Sessions/{id}/Playing", s.play)
+	s.mux.HandleFunc("POST /Sessions/Playing/Progress", s.reportProgress)
+	s.mux.HandleFunc("GET /web/index.html", s.webPlayer)
 	s.mux.HandleFunc("POST /UserItems/{id}/UserData", s.setUserData)
 	s.mux.HandleFunc("POST /Users/{userId}/Items/{id}/UserData", s.setUserDataLegacy)
 	// Not part of Jellyfin: lets end-to-end tests see what Cliparr asked for.
@@ -145,6 +157,20 @@ func (s *Server) authenticate(w http.ResponseWriter, r *http.Request) {
 		"AccessToken": "token-" + req.Username,
 		"User":        map[string]string{"Id": "id-" + req.Username, "Name": req.Username},
 	})
+}
+
+// me answers like Jellyfin: the user of a user token, 400 for an API key
+// (which has no user) and 401 for anything else.
+func (s *Server) me(w http.ResponseWriter, r *http.Request) {
+	if user, ok := userFromToken(r); ok {
+		writeJSON(w, map[string]string{"Id": "id-" + user, "Name": user})
+		return
+	}
+	if hasAPIKey(r) {
+		http.Error(w, "no user", http.StatusBadRequest)
+		return
+	}
+	http.Error(w, "unauthorized", http.StatusUnauthorized)
 }
 
 func (s *Server) listUsers(w http.ResponseWriter, r *http.Request) {
@@ -210,16 +236,63 @@ func (s *Server) serveBlob(w http.ResponseWriter, r *http.Request, contentType s
 	http.NotFound(w, r)
 }
 
-// listSessions offers one controllable TV and one client that cannot be controlled.
+// listSessions offers one controllable TV and one client that cannot be
+// controlled. With ?deviceId=X it instead returns that client's session, if it
+// is playing something, like Jellyfin does.
 func (s *Server) listSessions(w http.ResponseWriter, r *http.Request) {
-	if _, ok := requestUser(r); !ok {
+	user, ok := requestUser(r)
+	if !ok {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	if device := r.URL.Query().Get("deviceId"); device != "" {
+		s.mu.Lock()
+		p, playing := s.playing[device]
+		s.mu.Unlock()
+		sessions := []map[string]any{}
+		if playing {
+			sessions = append(sessions, map[string]any{
+				"Id": "session-" + device, "DeviceId": device, "DeviceName": "Fake Browser", "Client": "Jellyfin Web",
+				"UserId": "id-" + user, "SupportsRemoteControl": true,
+				"NowPlayingItem": map[string]string{"Id": p.ItemID},
+				"PlayState":      map[string]any{"PositionTicks": p.PositionTicks, "IsPaused": p.IsPaused},
+			})
+		}
+		writeJSON(w, sessions)
 		return
 	}
 	writeJSON(w, []map[string]any{
 		{"Id": TVDeviceID, "DeviceName": "Living Room TV", "Client": "Jellyfin Android TV", "SupportsRemoteControl": true},
 		{"Id": "session-cliparr", "DeviceName": "Cliparr Server", "Client": "Cliparr", "SupportsRemoteControl": false},
 	})
+}
+
+// reportProgress stores what a client says it is playing, as jellyfin-web does every few seconds.
+func (s *Server) reportProgress(w http.ResponseWriter, r *http.Request) {
+	if _, ok := requestUser(r); !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	var body progress
+	if json.NewDecoder(r.Body).Decode(&body) != nil || body.ItemID == "" {
+		http.Error(w, "bad body", http.StatusBadRequest)
+		return
+	}
+	device := headerValue(r.Header.Get("Authorization"), "DeviceId")
+	s.mu.Lock()
+	s.playing[device] = body
+	s.mu.Unlock()
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// headerValue reads key="value" out of a MediaBrowser Authorization header.
+func headerValue(header, key string) string {
+	_, after, found := strings.Cut(header, key+`="`)
+	if !found {
+		return ""
+	}
+	value, _, _ := strings.Cut(after, `"`)
+	return value
 }
 
 func (s *Server) play(w http.ResponseWriter, r *http.Request) {
@@ -272,6 +345,57 @@ func (s *Server) storeResume(w http.ResponseWriter, r *http.Request, user, itemI
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// webPlayer is a minimal stand-in for Jellyfin's web client, for testing the
+// browser extension: it keeps its credentials in localStorage like jellyfin-web,
+// plays a video, and reports progress. ?user=bob and ?item=ID pick who watches what.
+func (s *Server) webPlayer(w http.ResponseWriter, r *http.Request) {
+	user, item := r.URL.Query().Get("user"), r.URL.Query().Get("item")
+	if user == "" {
+		user = "alice"
+	}
+	if item == "" {
+		item = "movie-rocky"
+	}
+	if !isUser(user) || !isItem(item) {
+		http.Error(w, "unknown user or item", http.StatusBadRequest)
+		return
+	}
+	page := strings.NewReplacer("__USER__", user, "__ITEM__", item).Replace(webPlayerPage)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_, _ = w.Write([]byte(page))
+}
+
+func isItem(id string) bool {
+	for _, it := range catalog {
+		if it.ID == id {
+			return true
+		}
+	}
+	return false
+}
+
+const webPlayerPage = `<!doctype html>
+<html><head><meta charset="utf-8"><title>Fake Jellyfin</title></head>
+<body style="margin:0;background:#101010">
+<video id="player" src="/Videos/__ITEM__/stream?static=true&api_key=token-__USER__" controls muted loop
+  style="width:100%;max-height:90vh"></video>
+<script>
+  // What jellyfin-web keeps in localStorage after login.
+  localStorage.setItem('jellyfin_credentials', JSON.stringify({Servers: [{
+    Id: 'fake-server-id', Name: 'Fake Jellyfin', ManualAddress: location.origin, LocalAddress: location.origin,
+    UserId: 'id-__USER__', AccessToken: 'token-__USER__', DateLastAccessed: Date.now()}]}));
+  localStorage.setItem('_deviceId2', 'fake-device-1');
+  const video = document.getElementById('player');
+  // Like jellyfin-web, report what is playing every moment.
+  setInterval(() => fetch('/Sessions/Playing/Progress', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json',
+      'Authorization': 'MediaBrowser Client="Jellyfin Web", Device="Fake", DeviceId="fake-device-1", Version="10.9", Token="token-__USER__"'},
+    body: JSON.stringify({ItemId: '__ITEM__', PositionTicks: Math.round(video.currentTime * 10000000), IsPaused: video.paused}),
+  }), 500);
+</script>
+</body></html>`
+
 func (s *Server) reportLastPlay(w http.ResponseWriter, _ *http.Request) {
 	play, ok := s.LastPlay()
 	if !ok {
@@ -304,8 +428,15 @@ func requestUser(r *http.Request) (string, bool) {
 	return userFromToken(r)
 }
 
-// userFromToken extracts the user from `Token="token-<user>"` in the Authorization header.
+// userFromToken extracts the user from `Token="token-<user>"` in the
+// Authorization header, the X-Emby-Token header, or the api_key query
+// parameter that browsers use for video elements.
 func userFromToken(r *http.Request) (string, bool) {
+	for _, key := range []string{r.URL.Query().Get("api_key"), r.Header.Get("X-Emby-Token")} {
+		if user, ok := strings.CutPrefix(key, "token-"); ok {
+			return user, isUser(user)
+		}
+	}
 	h := r.Header.Get("Authorization")
 	i := strings.Index(h, `Token="token-`)
 	if i < 0 {
@@ -316,7 +447,8 @@ func userFromToken(r *http.Request) (string, bool) {
 }
 
 func hasAPIKey(r *http.Request) bool {
-	return strings.Contains(r.Header.Get("Authorization"), `Token="`+APIKey+`"`)
+	return strings.Contains(r.Header.Get("Authorization"), `Token="`+APIKey+`"`) ||
+		r.Header.Get("X-Emby-Token") == APIKey || r.URL.Query().Get("api_key") == APIKey
 }
 
 func isUser(name string) bool {

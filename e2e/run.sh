@@ -119,6 +119,13 @@ check "stream works with range requests" 206 \
   "$(status "$DIRECT/api/items/movie-rocky/stream" -H "Authorization: Bearer $TOKEN" -H 'Range: bytes=0-9')"
 
 echo
+echo "== browser extension login (the Jellyfin token itself) =="
+check "a user's Jellyfin token logs in" alice "$(json "$DIRECT/api/me" -H 'Authorization: Jellyfin token-alice' | jq -r .name)"
+check "the extension can see alice's bookmarks" 1 "$(json "$DIRECT/api/clips" -H 'Authorization: Jellyfin token-alice' | jq length)"
+check "a made-up token is refused" 401 "$(status "$DIRECT/api/me" -H 'Authorization: Jellyfin token-mallory')"
+check "the administrator API key is refused as a token" 401 "$(status "$DIRECT/api/me" -H 'Authorization: Jellyfin test-api-key')"
+
+echo
 echo "== bookmark previews and opening in Jellyfin =="
 THUMB_HEADERS="$WORK/thumb.headers"
 THUMB_BODY="$WORK/thumb.body"
