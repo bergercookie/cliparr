@@ -27,14 +27,7 @@ jobs:
           fetch-depth: 0
       - uses: ./.github/actions/setup-flutter
       - uses: extractions/setup-just@v4
-      - name: Install linuxdeploy
-        run: |
-          base=https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous
-          mkdir -p "$HOME/bin"
-          curl -fsSL -o "$HOME/bin/linuxdeploy" "$base/linuxdeploy-x86_64.AppImage"
-          curl -fsSL -o "$HOME/bin/linuxdeploy-plugin-appimage" "$base/linuxdeploy-plugin-appimage-x86_64.AppImage"
-          chmod +x "$HOME/bin/"*
-          echo "$HOME/bin" >> "$GITHUB_PATH"
+      - uses: ./.github/actions/setup-linuxdeploy
       - run: just package-linux "${{ inputs.version }}"
       - uses: actions/upload-artifact@v7
         with:

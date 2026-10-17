@@ -1,7 +1,9 @@
 name: Docs
 
-# Publishes the documentation to GitHub Pages.
-# One-time setup: Settings > Pages > Source: GitHub Actions.
+# Builds the documentation on every change to it, and publishes it to GitHub
+# Pages once Pages is set up. One-time setup:
+#   1. Settings > Pages > Source: GitHub Actions
+#   2. Settings > Secrets and variables > Actions > Variables: PAGES_ENABLED = true
 on:
   push:
     branches: [master]
@@ -22,13 +24,20 @@ jobs:
       - uses: actions/checkout@v7
       - uses: jetify-com/devbox-install-action@v0.15.0
       - run: devbox run -- just docs
-      - uses: actions/configure-pages@v6
+      - name: Say whether the site will be published
+        env:
+          PAGES_ENABLED: ${{ vars.PAGES_ENABLED }}
+        run: |
+          if [[ "$PAGES_ENABLED" != "true" ]]; then
+            echo "::notice::The docs build, but are not published: enable GitHub Pages (Source: GitHub Actions) and set the repository variable PAGES_ENABLED to true."
+          fi
       - uses: actions/upload-pages-artifact@v5
         with:
           path: docs/_build/html
 
   deploy:
     needs: build
+    if: vars.PAGES_ENABLED == 'true'
     runs-on: ubuntu-latest
     permissions:
       pages: write

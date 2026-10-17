@@ -48,9 +48,7 @@ fi
 
 old_signers="$(apk_signers "$old")"
 new_signers="$(apk_signers "$new")"
-if [[ -z "$old_signers" || -z "$new_signers" ]]; then
-  fail "an APK has no valid signature"
-elif [[ "$old_signers" == "$new_signers" ]]; then
+if [[ "$old_signers" == "$new_signers" ]]; then
   echo "ok   - signed with the same key"
 else
   fail "signing key differs: Android refuses the update (users would have to uninstall first)"

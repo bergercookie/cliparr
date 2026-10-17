@@ -1,0 +1,14 @@
+name: Set up linuxdeploy
+description: Installs linuxdeploy and its AppImage plugin, which bundle the libraries the Linux app needs into an AppImage.
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        base=https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous
+        mkdir -p "$HOME/bin"
+        curl -fsSL -o "$HOME/bin/linuxdeploy" "$base/linuxdeploy-x86_64.AppImage"
+        curl -fsSL -o "$HOME/bin/linuxdeploy-plugin-appimage" "$base/linuxdeploy-plugin-appimage-x86_64.AppImage"
+        chmod +x "$HOME/bin/"*
+        echo "$HOME/bin" >> "$GITHUB_PATH"

@@ -13,6 +13,7 @@ ARG VERSION=dev
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl git unzip xz-utils \
     && rm -rf /var/lib/apt/lists/*
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN curl -fsSL "https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz" \
     | tar -xJ -C /opt
 ENV PATH="/opt/flutter/bin:${PATH}"
@@ -51,6 +52,6 @@ ENV CLIPARR_DATA_DIR=/data \
     CLIPARR_LISTEN=:8080
 VOLUME /data
 EXPOSE 8080
-USER cliparr
+USER 65532:65532
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s CMD ["cliparr", "healthcheck"]
 ENTRYPOINT ["cliparr"]

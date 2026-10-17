@@ -25,9 +25,22 @@ apk_min_sdk() {
   "$(build_tool aapt)" dump badging "$1" | sed -n "s/^sdkVersion:'\([0-9]*\)'.*/\1/p"
 }
 
-# apk_signers APK: SHA-256 digests of the signing certificates, sorted. Also
-# fails if the signature is broken.
+# apk_signers APK: SHA-256 digests of the signing certificates, sorted. Fails,
+# printing what apksigner said, if the signature is broken or none is found.
 apk_signers() {
-  "$(build_tool apksigner)" verify --print-certs "$1" 2>/dev/null |
-    sed -n 's/^Signer #[0-9]* certificate SHA-256 digest: //p' | sort
+  local output digests
+  if ! output="$("$(build_tool apksigner)" verify --print-certs "$1" 2>&1)"; then
+    echo "apksigner could not verify $1:" >&2
+    echo "$output" >&2
+    return 1
+  fi
+  # Older versions print "Signer #1 certificate ...", newer ones may name the
+  # SDK range instead of a number, so match both.
+  digests="$(sed -n 's/^Signer.* certificate SHA-256 digest: //p' <<<"$output" | sort)"
+  if [[ -z "$digests" ]]; then
+    echo "no signing certificate found in $1; apksigner said:" >&2
+    echo "$output" >&2
+    return 1
+  fi
+  echo "$digests"
 }

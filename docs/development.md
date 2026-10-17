@@ -77,6 +77,6 @@ CI uploads coverage to [Codecov](https://about.codecov.io/), which comments on p
 
 ## Documentation
 
-The docs are Markdown in `docs/`, readable on GitHub and built into a site with Sphinx and MyST (`just docs`). Pushes to `master` publish the site to GitHub Pages; enable it once under Settings, Pages, Source: GitHub Actions.
+The docs are Markdown in `docs/`, readable on GitHub and built into a site with Sphinx and MyST (`just docs`). Every change to the docs is built in CI. Pushes to `master` also publish the site to GitHub Pages once you have enabled it: under Settings, Pages, set the Source to GitHub Actions, then add the repository variable `PAGES_ENABLED` with the value `true` (Settings, Secrets and variables, Actions, Variables). Until then the workflow only builds the docs and says so in its log.
 
 Write for someone who has never seen the code: say what to do before explaining why, and keep each page about one task.
