@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cliparr for Jellyfin</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body { font: 15px/1.5 system-ui, sans-serif; max-width: 34rem; margin: 2rem auto; padding: 0 1rem; }
+      h1 { font-size: 1.4rem; }
+      label { display: block; margin: 1rem 0 .25rem; font-weight: 600; }
+      input { width: 100%; box-sizing: border-box; padding: .5rem; font: inherit; }
+      .hint { color: GrayText; font-size: .9rem; margin: .25rem 0 0; }
+      .buttons { margin-top: 1.25rem; display: flex; gap: .5rem; }
+      button { padding: .5rem 1rem; font: inherit; cursor: pointer; }
+      #status { margin-top: 1rem; min-height: 1.5rem; }
+      #status.error { color: #c0392b; }
+      kbd { border: 1px solid GrayText; border-radius: 3px; padding: 0 .3em; }
+    </style>
+  </head>
+  <body>
+    <h1>Cliparr for Jellyfin</h1>
+    <p>Adds a bookmark button to Jellyfin's video player and saves the moments to your Cliparr server.</p>
+
+    <form id="form">
+      <label for="jellyfin">Jellyfin address</label>
+      <input id="jellyfin" type="text" placeholder="http://192.168.1.10:8096" required autocomplete="off" />
+      <p class="hint">The address you open Jellyfin with in this browser.</p>
+
+      <label for="cliparr">Cliparr address</label>
+      <input id="cliparr" type="text" placeholder="http://192.168.1.10:8080" required autocomplete="off" />
+      <p class="hint">The address of your Cliparr server. You need no separate login: the extension uses your Jellyfin login.</p>
+
+      <div class="buttons">
+        <button type="submit">Save</button>
+        <button type="button" id="test">Test connection</button>
+      </div>
+      <p id="status" role="status"></p>
+    </form>
+
+    <h2>Using it</h2>
+    <ol>
+      <li>Open a movie or episode in Jellyfin and play it.</li>
+      <li>Click <b>Bookmark</b> (or press <kbd>B</kbd>) where the moment starts, play on, and click again where it ends.</li>
+      <li><kbd>Shift</kbd>+click or <kbd>Shift</kbd>+<kbd>B</kbd> saves the last 10 seconds in one step. <kbd>Esc</kbd> cancels a start mark.</li>
+    </ol>
+    <script src="lib.js"></script>
+    <script src="options.js"></script>
+  </body>
+</html>

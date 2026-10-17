@@ -57,6 +57,14 @@ jobs:
       - uses: jetify-com/devbox-install-action@v0.15.0
       - run: devbox run -- just e2e
 
+  extension:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jetify-com/devbox-install-action@v0.15.0
+      - run: devbox run -- just lint-extension
+      - run: devbox run -- just e2e-extension
+
   docs:
     runs-on: ubuntu-latest
     steps:

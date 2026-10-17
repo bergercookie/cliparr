@@ -41,6 +41,17 @@ jobs:
           name: linux
           path: dist/*
 
+  extension:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: extractions/setup-just@v4
+      - run: just package-extension "${{ inputs.version }}"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: extension
+          path: dist/*
+
   android:
     runs-on: ubuntu-24.04
     steps:
@@ -124,7 +135,7 @@ jobs:
       - run: just docker-publish "${{ inputs.version }}"
 
   publish:
-    needs: [linux, android, upgrade, docker]
+    needs: [linux, extension, android, upgrade, docker]
     runs-on: ubuntu-latest
     permissions:
       contents: write

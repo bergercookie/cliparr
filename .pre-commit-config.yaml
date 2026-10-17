@@ -25,6 +25,12 @@ repos:
         language: system
         files: ^app/
         pass_filenames: false
+      - id: lint-extension
+        name: lint browser extension (syntax, web-ext)
+        entry: just lint-extension
+        language: system
+        files: ^(extension/|scripts/build-extension\.sh)
+        pass_filenames: false
       - id: lint-bash
         name: lint bash (shellcheck, shfmt)
         entry: just lint-bash

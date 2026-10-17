@@ -28,12 +28,9 @@ cleanup() {
 }
 trap cleanup EXIT
 
-venv="$root/.venv/screenshots"
-python3 -m venv "$venv"
-"$venv/bin/pip" install --quiet -r "$root/scripts/requirements-screenshots.txt"
-if [[ -z "${CHROMIUM:-}" ]]; then
-  "$venv/bin/playwright" install chromium
-fi
+# shellcheck source=browser-env.sh
+source "$root/scripts/browser-env.sh"
+python="$(browser_python)"
 
 "$root/scripts/make-sample-video.sh" "$work/sample.webm"
 
@@ -49,4 +46,4 @@ for _ in $(seq 100); do
   sleep 0.1
 done
 
-"$venv/bin/python" "$root/scripts/screenshots.py" "http://127.0.0.1:$cliparr_port" "$out"
+"$python" "$root/scripts/screenshots.py" "http://127.0.0.1:$cliparr_port" "$out"

@@ -16,6 +16,8 @@
     "curl@latest",
     "caddy@latest",
     "ffmpeg@latest",
+    "nodejs@latest",
+    "zip@latest",
     "gh@latest"
   ],
   "shell": {

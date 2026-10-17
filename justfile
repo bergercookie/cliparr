@@ -86,6 +86,14 @@ lint-bash:
     shellcheck "${scripts[@]}"
     shfmt -d -i 2 -ci "${scripts[@]}"
 
+# Syntax-check the extension scripts and validate both browser manifests (Firefox's web-ext linter).
+[group('check')]
+lint-extension:
+    #!/usr/bin/env bash
+    for f in extension/*.js extension/test/*.js; do node --check "$f"; done
+    scripts/build-extension.sh 0.0.0 >/dev/null
+    npx --yes web-ext@10.8.0 lint --source-dir build/extension/firefox --warnings-as-errors
+
 # hadolint on the Dockerfiles.
 [group('check')]
 lint-docker:
@@ -119,6 +127,11 @@ test-app:
     # Make the file paths relative to the repository root, as the coverage service expects.
     sed 's#^SF:lib/#SF:app/lib/#' app/coverage/lcov.info > build/coverage/app.lcov
 
+# Unit tests of the browser extension's logic.
+[group('check')]
+test-extension:
+    node --test 'extension/test/*.test.js'
+
 # Tests for the release version script.
 [group('check')]
 test-scripts:
@@ -126,7 +139,7 @@ test-scripts:
 
 # All unit tests.
 [group('check')]
-test: test-go test-app test-scripts
+test: test-go test-app test-scripts test-extension
 
 # End-to-end test: real server behind Caddy and a fake Authelia (needs caddy, curl, jq).
 [group('check')]
@@ -158,13 +171,18 @@ upgrade-test: upgrade-apks upgrade-check
 coverage:
     scripts/coverage-summary.sh
 
+# End-to-end test of the browser extension in a real Chromium, against a stand-in Jellyfin player (needs ffmpeg).
+[group('check')]
+e2e-extension:
+    scripts/extension-e2e.sh
+
 # Lint and unit tests: run this before every commit.
 [group('check')]
 check: lint test
 
 # Everything CI runs, except the Android upgrade test (it needs an emulator; see `just upgrade-test`).
 [group('check')]
-ci: check vuln e2e docs
+ci: check vuln e2e e2e-extension docs
 
 # --- documentation -------------------------------------------------------------
 
@@ -212,6 +230,11 @@ package-linux release:
 [group('release')]
 android-keystore:
     scripts/android-keystore.sh
+
+# Build the browser extension zips (Chrome and Firefox) into dist/. Usage: just package-extension 1.2.3
+[group('release')]
+package-extension release:
+    scripts/build-extension.sh "{{ release }}"
 
 # Build the Android APK into dist/. Usage: just package-apk 1.2.3
 [group('release')]
