@@ -22,13 +22,15 @@ Before anything is published, the workflow installs the previous release's APK o
 
 Every night at 02:17 UTC the nightly workflow publishes a prerelease, unless nothing changed since the previous nightly. You can also start it by hand from the Actions tab, which always builds.
 
-The version takes the latest stable version, raises the **minor** number, keeps the patch number and adds `.postN`:
+The version takes the latest stable version, raises the **minor** number, keeps the patch number and adds `.postN.YYYYMMDD`: a counter of nightlies for that version, then the UTC date of the build.
 
 | Latest stable tag | Nightlies |
 | --- | --- |
-| `v1.2.3` | `1.3.3.post1`, `1.3.3.post2`, `1.3.3.post3`, ... |
-| `v1.3.0` (cut later) | `1.4.0.post1`, ... |
-| none yet | `0.1.0.post1`, ... |
+| `v1.2.3` | `1.3.3.post1.20261017`, `1.3.3.post2.20261018`, ... |
+| `v1.3.0` (cut later) | `1.4.0.post1.20261101`, ... |
+| none yet | `0.1.0.post1.20261017`, ... |
+
+Two nightlies on the same day get different counters (`post1`, `post2`) and the same date.
 
 Nightly images are tagged with the full version and `nightly`. The 14 newest nightly releases are kept; older ones and their tags are deleted automatically. `scripts/version.sh` implements these rules and `scripts/test-version.sh` tests them.
 

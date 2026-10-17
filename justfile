@@ -262,7 +262,7 @@ github-release release kind="stable":
 nightly-prune keep="14":
     #!/usr/bin/env bash
     gh release list --repo "{{ repo }}" --limit 200 --json tagName,publishedAt \
-      --jq 'map(select(.tagName | test("\\.post[0-9]+$"))) | sort_by(.publishedAt) | reverse | .[{{ keep }}:][].tagName' |
+      --jq 'map(select(.tagName | test("\\.post[0-9]+\\.[0-9]{8}$"))) | sort_by(.publishedAt) | reverse | .[{{ keep }}:][].tagName' |
       while read -r tag; do
         gh release delete "$tag" --repo "{{ repo }}" --cleanup-tag --yes
       done
