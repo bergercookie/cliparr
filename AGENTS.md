@@ -26,7 +26,7 @@ Everything goes through the `justfile`. Do not invent your own commands.
 - Keep it simple, readable and boring. Small functions, clear names.
 - Match the style of the surrounding code. Do not add dependencies without a reason.
 - Go: standard library first. Wrap errors with `%w`. No globals. Add a test with every behavior change.
-- Dart: run `just app-lint`. Keep widgets small. No state-management package.
+- Dart: run `just lint-app`. Keep widgets small. No state-management package.
 - Bash: `set -euo pipefail`. Must pass shellcheck.
 - Docs live in `docs/*.md` (Markdown only). Update them when behavior changes.
   Write for a reader who has never seen the code or this repo's history: say what to do first,

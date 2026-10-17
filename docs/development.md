@@ -50,6 +50,10 @@ To work on the interface with the fake Jellyfin: run `just dev`, build the web a
 
 Add a test with every behaviour change. See `AGENTS.md` for the conventions.
 
+## Screenshots
+
+`just screenshots` rebuilds the web app, starts the server against the fake Jellyfin with a few sample clips, and photographs the main screens in a headless Chromium into `docs/screenshots/` (light, dark and phone-sized). It uses Playwright, which downloads a Chromium on first run; set `CHROMIUM=/path/to/chromium` to use one you already have. Re-run it after UI changes and commit the new images. The sample quotes are invented on purpose, so the images do not attribute real lines to real films.
+
 ## Android upgrade test
 
 An Android update fails if the new APK has a different signing key, a different package name or a lower version code, and nobody notices until a user complains. Two scripts guard against that:

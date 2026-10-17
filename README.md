@@ -13,6 +13,11 @@ Save the moments of your Jellyfin movies and shows that you want to see again: a
 - Works with single sign-on (Authelia and similar) behind a reverse proxy.
 - Web interface (served by the container), Android app, Linux desktop app.
 
+<p align="center">
+  <img src="docs/screenshots/clips.png" alt="Cliparr clips page on a desktop browser" width="62%">
+  <img src="docs/screenshots/mobile-clips.png" alt="Cliparr clips page on a phone" width="22%">
+</p>
+
 Cliparr only stores *where* a clip is (item, start, end) plus your text. The video itself always streams from your Jellyfin server.
 
 ## Quick start

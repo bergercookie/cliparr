@@ -82,7 +82,7 @@ lint-app:
 [group('check')]
 lint-bash:
     #!/usr/bin/env bash
-    mapfile -t scripts < <(find . -name '*.sh' -not -path './app/*' -not -path './.git/*' -not -path './build/*')
+    mapfile -t scripts < <(find . -name '*.sh' -not -path './app/*' -not -path './.git/*' -not -path './build/*' -not -path './.venv/*')
     shellcheck "${scripts[@]}"
     shfmt -d -i 2 -ci "${scripts[@]}"
 
@@ -179,6 +179,11 @@ docs:
 [group('docs')]
 docs-serve: docs
     python3 -m http.server --directory docs/_build/html 8000
+
+# Take screenshots of the web app into docs/screenshots/ (downloads a Chromium unless CHROMIUM points at one).
+[group('docs')]
+screenshots: build-web
+    scripts/screenshots.sh
 
 # --- release (used by the GitHub workflows) -------------------------------------
 

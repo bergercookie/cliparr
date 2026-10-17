@@ -40,12 +40,21 @@ For HTTPS and a proper domain name, continue with [Reverse proxy and HTTPS](reve
 ## Save your first clip
 
 1. Log in with your Jellyfin username and password.
+
+   ![The login page](screenshots/login.png)
+
 2. Click **New clip** and search for a movie or episode. Click a result.
+
+   ![Searching the library for a movie](screenshots/new-clip-search.png)
 3. The video starts loading. Play or drag the slider to the moment you like, then click the flag next to **Start**. Move to the end and click the flag next to **End**. You can also type times such as `1:23` or `1:02:03`.
 4. Click **Preview clip** to loop the range. Adjust until it feels right.
 5. Add the quote, a note about why it matters to you, and some comma-separated tags. Click **Save clip**.
 
 Your clips page lists everything. Use the search box for words in the quote, note or title. Click a clip to play it on a loop.
+
+![The clips page](screenshots/clips.png)
+
+The interface follows your device's light or dark setting and also works on phones.
 
 ## Good to know
 
