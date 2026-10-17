@@ -5,7 +5,7 @@
 # drives a headless Chromium through the main screens and writes PNG files.
 #
 # Usage: screenshots.sh [OUTPUT_DIR]   (default: docs/screenshots)
-# Needs: go, python3, and the web app built into the server (`just build-web`).
+# Needs: go, python3, ffmpeg, and the web app built into the server (`just build-web`).
 # Set CHROMIUM=/path/to/chromium to use an installed browser; otherwise
 # Playwright downloads one.
 set -euo pipefail
@@ -35,8 +35,10 @@ if [[ -z "${CHROMIUM:-}" ]]; then
   "$venv/bin/playwright" install chromium
 fi
 
+"$root/scripts/make-sample-video.sh" "$work/sample.webm"
+
 (cd "$root/server" && go build -o "$work/bin/" ./cmd/cliparr ./cmd/fakejellyfin)
-"$work/bin/fakejellyfin" -listen "127.0.0.1:$jellyfin_port" >"$work/jellyfin.log" 2>&1 &
+"$work/bin/fakejellyfin" -listen "127.0.0.1:$jellyfin_port" -video "$work/sample.webm" >"$work/jellyfin.log" 2>&1 &
 pids+=("$!")
 CLIPARR_JELLYFIN_URL="http://127.0.0.1:$jellyfin_port" CLIPARR_LISTEN="127.0.0.1:$cliparr_port" \
   CLIPARR_DATA_DIR="$work/data" "$work/bin/cliparr" >"$work/cliparr.log" 2>&1 &

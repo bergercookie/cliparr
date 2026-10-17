@@ -19,20 +19,21 @@ from playwright.sync_api import Page, sync_playwright
 CHROMIUM = os.environ.get("CHROMIUM")
 
 # Invented quotes: the screenshots must not attribute real lines to real films.
+# The fake Jellyfin streams a one-minute video, so every clip lies inside it.
 SAMPLE_CLIPS = [
     {
-        "itemId": "movie-rocky", "startMs": 4_800_000, "endMs": 4_860_000,
+        "itemId": "movie-rocky", "startMs": 15_000, "endMs": 25_000,
         "quote": "Hard things are only hard until they are done.",
         "note": "The pep talk before the final round. Watch this when I want to quit.",
         "tags": ["motivation", "speech"],
     },
     {
-        "itemId": "episode-pilot", "startMs": 600_000, "endMs": 640_000,
+        "itemId": "episode-pilot", "startMs": 30_000, "endMs": 40_000,
         "quote": "You miss every shot you do not take, so take two.",
         "note": "", "tags": ["motivation"],
     },
     {
-        "itemId": "movie-rocky", "startMs": 1_200_000, "endMs": 1_215_000,
+        "itemId": "movie-rocky", "startMs": 42_000, "endMs": 50_000,
         "quote": "That is not a bug, that is a surprise feature.",
         "note": "Quote for the team chat.", "tags": ["funny"],
     },
@@ -99,10 +100,23 @@ def take(browser, base: str, out: Path, *, prefix: str, dark: bool, viewport: di
         context.close()
         return
 
+    # The first card (newest clip) is the one these screens are taken from.
+    page.get_by_role("button", name="Open in Jellyfin").first.click()
+    page.wait_for_timeout(1500)
+    shoot(page, out, f"{prefix}open-in-jellyfin")
+    page.keyboard.press("Escape")
+    page.wait_for_timeout(500)
+
     page.get_by_role("button", name="Settings").click()
     shoot(page, out, f"{prefix}settings")
 
     # Reloading returns to the clips page: the login cookie survives.
+    open_app(page, base)
+    enable_semantics(page)
+    page.get_by_role("button", name="Play clip").first.click()
+    page.wait_for_timeout(4000)  # let the video load and start looping
+    shoot(page, out, f"{prefix}clip-player")
+
     open_app(page, base)
     enable_semantics(page)
     page.get_by_role("button", name="New clip").click()

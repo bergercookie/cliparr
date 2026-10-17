@@ -23,6 +23,17 @@ Sessions last 30 days. Only a hash of your Cliparr token is stored, so a stolen 
 
 With [single sign-on](sso.md) the proxy vouches for the user instead, and Cliparr uses an API key. Everything else stays the same.
 
+## Preview pictures
+
+When a card first needs its picture, Cliparr starts `ffmpeg`, which reads the movie directly from Jellyfin (with your own token) and jumps to the middle of the clip using HTTP range requests, so only a small part of the file is transferred. The frame is saved as a small JPEG in the `thumbnails` folder of the data directory and served from there afterwards. Changing a clip's start or end, or deleting it, removes its picture. If ffmpeg is missing or fails, the card shows the movie's poster from Jellyfin instead.
+
+## Opening a clip in Jellyfin
+
+Jellyfin's web client has no address format with a start time, so Cliparr uses Jellyfin's API:
+
+- **Play on a device:** Cliparr asks Jellyfin for the running clients that you may remote-control, and sends the chosen one a "play this item at this position" command. Cliparr only accepts devices from that list, so one user cannot start playback on someone else's device.
+- **Open in Jellyfin web:** Cliparr stores the bookmark's start as your resume position for the item and gives the app the Jellyfin web address (built from `CLIPARR_JELLYFIN_PUBLIC_URL`). Jellyfin's Resume button then starts there.
+
 ## Playing a clip
 
 The player asks Cliparr for `/api/items/<id>/stream`. Cliparr forwards the request to Jellyfin's original-file endpoint and relays the answer, including HTTP range requests, so seeking works. The Jellyfin address and token never reach the browser. Playback stops at the clip's end and jumps back to its start.
@@ -43,5 +54,9 @@ All endpoints return JSON and need a login, except the first three.
 | `GET /api/items?q=` | Search movies and episodes |
 | `GET /api/items/{id}/stream` and `/image` | Video and poster, relayed from Jellyfin |
 | `GET/POST /api/clips`, `GET/PUT/DELETE /api/clips/{id}` | Manage clips; `GET /api/clips` accepts `q` and `tag` |
+| `GET /api/clips/{id}/thumbnail` | Preview picture of the clip (JPEG, or the poster if it cannot be made) |
+| `GET /api/clips/{id}/jellyfin` | How to open the clip in Jellyfin: web address, start, current resume point, controllable devices |
+| `POST /api/clips/{id}/jellyfin/play` | Play the clip on a Jellyfin device: `{"deviceId": "..."}` |
+| `POST /api/clips/{id}/jellyfin/resume` | Set the Jellyfin resume point to the clip start |
 
 Send the token as `Authorization: Bearer <token>`.

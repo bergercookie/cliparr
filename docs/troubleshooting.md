@@ -16,6 +16,9 @@ Every request is logged with its status code. Messages starting with `level=WARN
 | Login says "invalid Jellyfin username or password" | Try the same credentials in Jellyfin itself. Users who sign in through an SSO plugin have no password; see [Single sign-on](sso.md). |
 | You are logged out again right after logging in, behind a proxy | The proxy must forward `X-Forwarded-Proto` (Caddy does by default). Check that you open the HTTPS address, not plain HTTP. |
 | A clip shows "Could not play this video" | Browsers play only some formats. Try the Android or Linux app, or convert the file to H.264 and AAC in an MP4. |
+| Cards show a poster or a grey movie icon instead of a scene | The preview picture could not be made. Check that `ffmpeg` exists in the container (`docker compose exec cliparr ffmpeg -version`) and that the bookmark's time lies inside the video. The logs say `thumbnail failed` with the reason. |
+| "Open in Jellyfin web" opens the wrong address | Set `CLIPARR_JELLYFIN_PUBLIC_URL` to the address you use in your browser. |
+| "No Jellyfin app that Cliparr can control is running" | Open the Jellyfin app on your TV, phone or computer first, then use the refresh button in the sheet. Browser tabs with Jellyfin open count too. |
 | Clips are listed but the poster or video fails | The Jellyfin item was deleted or moved, or your Jellyfin user lost access to its library. |
 | SSO: "your SSO username does not match any Jellyfin user" | The username from Authelia must exist in Jellyfin (capitalisation is ignored). |
 | SSO: the login page appears even though Authelia logged you in | Cliparr ignores the header. Look for `ignoring proxy auth header sent from an untrusted address` in the logs: the address shown must be inside `CLIPARR_PROXY_AUTH_TRUSTED`. |

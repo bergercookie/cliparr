@@ -4,11 +4,13 @@
 [![codecov](https://codecov.io/gh/bergercookie/cliparr/graph/badge.svg)](https://codecov.io/gh/bergercookie/cliparr)
 [![Latest release](https://img.shields.io/github/v/release/bergercookie/cliparr)](https://github.com/bergercookie/cliparr/releases/latest)
 
-Save the moments of your Jellyfin movies and shows that you want to see again: a motivating speech, a perfect one-liner, a scene that just works. Cliparr keeps them in one place, with your own notes and tags, and plays each one back on a loop.
+Bookmark the moments of your Jellyfin movies and shows that you want to see again: a motivating speech, a perfect one-liner, a scene that just works. Every bookmark is a card with a picture from the scene, your own notes and tags. Play it here on a loop, or jump to the same moment in Jellyfin.
 
 - Log in with your existing Jellyfin account. Nothing new to set up for your users.
 - Pick any movie or episode, mark the start and end while watching, add a quote and a note.
-- Search and filter all your clips from one page.
+- Each bookmark shows a preview picture of the scene.
+- Open a bookmark in Cliparr, or at the exact time in Jellyfin on your TV, phone or computer.
+- Search and filter all your bookmarks from one page.
 - Self-hosted: one small container, one SQLite file.
 - Works with single sign-on (Authelia and similar) behind a reverse proxy.
 - Web interface (served by the container), Android app, Linux desktop app.
@@ -18,7 +20,7 @@ Save the moments of your Jellyfin movies and shows that you want to see again: a
   <img src="docs/screenshots/mobile-clips.png" alt="Cliparr clips page on a phone" width="22%">
 </p>
 
-Cliparr only stores *where* a clip is (item, start, end) plus your text. The video itself always streams from your Jellyfin server.
+Cliparr only stores *where* a clip is (item, start, end) plus your text, and small preview pictures. The video itself always streams from your Jellyfin server.
 
 ## Quick start
 

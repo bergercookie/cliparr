@@ -43,7 +43,7 @@ To work on the interface with the fake Jellyfin: run `just dev`, build the web a
 
 ## Tests
 
-- Go tests live next to the code. API tests run the real handlers against `fakejellyfin`, so they need no network.
+- Go tests live next to the code. API tests run the real handlers against `fakejellyfin`, so they need no network. Tests of the preview pictures run the real `ffmpeg` and skip themselves when it is not installed (Devbox and CI have it).
 - Flutter tests cover the API client, version logic, the update checker and the screens.
 - `e2e/run.sh` starts the real binary and checks password login, SSO through Caddy, and header spoofing. The Authelia in that test is a small stand-in (`server/cmd/fakeauthelia`) that follows Authelia's forward-auth contract; it is not Authelia itself.
 - `just coverage` prints coverage after `just test`.
@@ -52,7 +52,7 @@ Add a test with every behaviour change. See `AGENTS.md` for the conventions.
 
 ## Screenshots
 
-`just screenshots` rebuilds the web app, starts the server against the fake Jellyfin with a few sample clips, and photographs the main screens in a headless Chromium into `docs/screenshots/` (light, dark and phone-sized). It uses Playwright, which downloads a Chromium on first run; set `CHROMIUM=/path/to/chromium` to use one you already have. Re-run it after UI changes and commit the new images. The sample quotes are invented on purpose, so the images do not attribute real lines to real films.
+`just screenshots` rebuilds the web app, starts the server against the fake Jellyfin (which streams a generated one-minute test video, so it needs `ffmpeg`) with a few sample clips, and photographs the main screens in a headless Chromium into `docs/screenshots/` (light, dark and phone-sized). It uses Playwright, which downloads a Chromium on first run; set `CHROMIUM=/path/to/chromium` to use one you already have. Re-run it after UI changes and commit the new images. The sample quotes are invented on purpose, so the images do not attribute real lines to real films.
 
 ## Android upgrade test
 
