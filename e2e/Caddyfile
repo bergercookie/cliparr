@@ -1,0 +1,22 @@
+# Test setup mirroring docs/reverse-proxy.md: Caddy asks Authelia (here a
+# stand-in) who the user is, then forwards the request to Cliparr.
+{
+	auto_https off
+	admin off
+}
+
+:{$E2E_CADDY_PORT} {
+	forward_auth 127.0.0.1:{$E2E_AUTHELIA_PORT} {
+		uri /api/authz/forward-auth
+		copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+	}
+	reverse_proxy 127.0.0.1:{$E2E_CLIPARR_PORT}
+}
+
+# Second hostname for the native apps, which cannot do the Authelia login.
+# Cliparr's own password login protects it. The proxy MUST strip Remote-User
+# here: otherwise a client could send that header through this trusted proxy.
+:{$E2E_APP_PORT} {
+	request_header -Remote-User
+	reverse_proxy 127.0.0.1:{$E2E_CLIPARR_PORT}
+}
