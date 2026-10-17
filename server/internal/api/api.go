@@ -196,10 +196,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		s.log.Warn("purge expired sessions", "err", err)
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name: sessionCookie, Value: token, Path: "/", Expires: expires,
-		HttpOnly: true, SameSite: http.SameSiteLaxMode, Secure: isHTTPS(r),
-	})
+	http.SetCookie(w, newSessionCookie(r, token, expires, 0))
 	writeJSON(w, http.StatusOK, map[string]any{"token": token, "user": jfSession.User})
 }
 
@@ -208,8 +205,20 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request, p principal) {
 		s.internalError(w, r, err)
 		return
 	}
-	http.SetCookie(w, &http.Cookie{Name: sessionCookie, Path: "/", MaxAge: -1, HttpOnly: true})
+	http.SetCookie(w, newSessionCookie(r, "", time.Unix(0, 0), -1)) // tells the browser to drop it
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// newSessionCookie builds the login cookie for the web interface (maxAge -1
+// deletes it). It is
+// unreadable by scripts and not sent on cross-site requests. It is marked
+// Secure whenever the request came over HTTPS; forcing it would lock out the
+// plain-http home setups that Cliparr supports.
+func newSessionCookie(r *http.Request, value string, expires time.Time, maxAge int) *http.Cookie {
+	return &http.Cookie{ //nolint:gosec // Secure follows the connection on purpose, see above
+		Name: sessionCookie, Value: value, Path: "/", Expires: expires, MaxAge: maxAge,
+		HttpOnly: true, SameSite: http.SameSiteLaxMode, Secure: isHTTPS(r),
+	}
 }
 
 func (s *Server) me(w http.ResponseWriter, _ *http.Request, p principal) {

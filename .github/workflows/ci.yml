@@ -14,19 +14,28 @@ concurrency:
 
 # Every job only calls `just`; see the justfile for what each recipe does.
 jobs:
+  # The lint and test jobs run in devbox but with the Flutter version pinned in
+  # .flutter-version put first on the PATH: devbox's own Flutter can be a patch
+  # release behind, and would rewrite pubspec.lock.
   lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-flutter
+        with:
+          full: "false"
       - uses: jetify-com/devbox-install-action@v0.15.0
-      - run: devbox run -- just lint
+      - run: devbox run -- env PATH="$FLUTTER_ROOT/bin:$PATH" just lint
 
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-flutter
+        with:
+          full: "false"
       - uses: jetify-com/devbox-install-action@v0.15.0
-      - run: devbox run -- just test
+      - run: devbox run -- env PATH="$FLUTTER_ROOT/bin:$PATH" just test
       - run: devbox run -- just coverage
       # Pull request comment and README badge come from Codecov. Needs the
       # CODECOV_TOKEN secret (see docs/development.md); without it the upload is skipped.

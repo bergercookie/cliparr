@@ -9,9 +9,11 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -40,13 +42,19 @@ func main() {
 
 // healthcheck calls the local /healthz endpoint and returns the process exit code.
 func healthcheck() int {
-	_, port, err := net.SplitHostPort(cmp.Or(os.Getenv("CLIPARR_LISTEN"), ":8080"))
+	_, portText, err := net.SplitHostPort(cmp.Or(os.Getenv("CLIPARR_LISTEN"), ":8080"))
 	if err != nil {
 		return 1
 	}
+	port, err := strconv.Atoi(portText)
+	if err != nil || port < 1 || port > 65535 {
+		return 1
+	}
+	// Always the loopback address: only the port comes from the configuration.
+	target := url.URL{Scheme: "http", Host: net.JoinHostPort("127.0.0.1", strconv.Itoa(port)), Path: "/healthz"}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://127.0.0.1:"+port+"/healthz", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, target.String(), nil)
 	if err != nil {
 		return 1
 	}

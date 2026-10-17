@@ -278,3 +278,21 @@ func TestStreamIsDeniedForHiddenItems(t *testing.T) {
 }
 
 func itoa(n int64) string { b, _ := json.Marshal(n); return string(b) }
+
+func TestLogoutDeletesTheLoginCookie(t *testing.T) {
+	e := newEnv(t)
+	token := e.login("alice")
+	req, _ := http.NewRequest("POST", e.url+"/api/auth/logout", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
+
+	cookies := resp.Cookies()
+	if len(cookies) != 1 || cookies[0].Name != "cliparr_session" || cookies[0].MaxAge >= 0 ||
+		!cookies[0].HttpOnly || cookies[0].SameSite != http.SameSiteLaxMode {
+		t.Errorf("expected one expired, hardened session cookie, got %+v", cookies)
+	}
+}

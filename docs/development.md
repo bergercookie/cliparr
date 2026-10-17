@@ -15,6 +15,8 @@ Everything you do in this repository goes through [`just`](https://just.systems/
 
 Building the Android app additionally needs a JDK 17 and the Android SDK; Devbox does not install them.
 
+Devbox's Flutter can be a patch release behind the version in `.flutter-version`, which CI, the Docker image and the releases use. That is fine for everyday work, but `flutter pub get` may then rewrite `app/pubspec.lock`: do not commit that change unless you updated dependencies on purpose.
+
 ## Layout
 
 | Path | Contents |

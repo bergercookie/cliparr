@@ -1,5 +1,10 @@
 name: Set up Flutter
-description: Installs the Flutter version pinned in .flutter-version, plus Java and the Linux desktop build dependencies.
+description: Installs the Flutter version pinned in .flutter-version. Unless "full" is false it also installs Java and the Linux desktop build dependencies.
+
+inputs:
+  full:
+    description: Also install Java and the Linux desktop build dependencies
+    default: "true"
 
 runs:
   using: composite
@@ -12,11 +17,13 @@ runs:
         flutter-version: ${{ steps.flutter.outputs.version }}
         channel: stable
         cache: true
-    - uses: actions/setup-java@v6
+    - if: inputs.full == 'true'
+      uses: actions/setup-java@v6
       with:
         distribution: temurin
         java-version: "17"
-    - shell: bash
+    - if: inputs.full == 'true'
+      shell: bash
       run: |
         sudo apt-get update
         sudo apt-get install -y --no-install-recommends \
