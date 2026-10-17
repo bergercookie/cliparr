@@ -1,0 +1,105 @@
+name: Build and publish a release
+
+# Shared by release.yml (tags) and nightly.yml. Builds every artifact and
+# publishes the GitHub release.
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: Version without the leading "v", e.g. 1.2.3 or 1.3.3.post1
+        type: string
+        required: true
+      kind:
+        description: stable or prerelease
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-flutter
+      - uses: extractions/setup-just@v4
+      - name: Install linuxdeploy
+        run: |
+          base=https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous
+          mkdir -p "$HOME/bin"
+          curl -fsSL -o "$HOME/bin/linuxdeploy" "$base/linuxdeploy-x86_64.AppImage"
+          curl -fsSL -o "$HOME/bin/linuxdeploy-plugin-appimage" "$base/linuxdeploy-plugin-appimage-x86_64.AppImage"
+          chmod +x "$HOME/bin/"*
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+      - run: just package-linux "${{ inputs.version }}"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: linux
+          path: dist/*
+
+  android:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-flutter
+      - uses: extractions/setup-just@v4
+      - name: Prepare signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          # An APK signed with a throwaway key cannot be updated in place, so
+          # never publish one: stop here instead.
+          if [[ -z "$KEYSTORE_BASE64" ]]; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 is not set. Run 'just android-keystore' and add the secrets (see docs/releasing.md)."
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "CLIPARR_KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+      - run: just package-apk "${{ inputs.version }}"
+        env:
+          CLIPARR_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          CLIPARR_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          CLIPARR_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: android
+          path: dist/*
+
+  docker:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: extractions/setup-just@v4
+      - run: just docker-publish "${{ inputs.version }}"
+
+  publish:
+    needs: [linux, android, docker]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: extractions/setup-just@v4
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+      - run: just github-release "${{ inputs.version }}" "${{ inputs.kind }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

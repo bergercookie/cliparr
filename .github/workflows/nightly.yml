@@ -1,0 +1,57 @@
+name: Nightly
+
+# Builds a prerelease every night if master changed since the last one.
+# Run it manually from the Actions tab to build one right now.
+on:
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.plan.outputs.build }}
+      version: ${{ steps.plan.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: jetify-com/devbox-install-action@v0.15.0
+      - id: plan
+        run: |
+          # Manual runs always build; scheduled runs only when something changed.
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]] || devbox run -- just nightly-needed; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+            echo "version=$(devbox run -- just nightly-version)" >> "$GITHUB_OUTPUT"
+          else
+            echo "build=false" >> "$GITHUB_OUTPUT"
+            echo "No changes since the last nightly, skipping."
+          fi
+
+  nightly:
+    needs: prepare
+    if: needs.prepare.outputs.build == 'true'
+    uses: ./.github/workflows/build-release.yml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+      kind: prerelease
+    permissions:
+      contents: write
+      packages: write
+    secrets: inherit
+
+  prune:
+    needs: nightly
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: extractions/setup-just@v4
+      - run: just nightly-prune 14
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

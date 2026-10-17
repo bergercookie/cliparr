@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Every job only calls `just`; see the justfile for what each recipe does.
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jetify-com/devbox-install-action@v0.15.0
+      - run: devbox run -- just lint
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jetify-com/devbox-install-action@v0.15.0
+      - run: devbox run -- just test
+      - run: devbox run -- just coverage
+      # Pull request comment and README badge come from Codecov. Needs the
+      # CODECOV_TOKEN secret (see docs/development.md); without it the upload is skipped.
+      - uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: build/coverage/server.out
+          flags: server
+          fail_ci_if_error: false
+      - uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: build/coverage/app.lcov
+          flags: app
+          fail_ci_if_error: false
+
+  vuln:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jetify-com/devbox-install-action@v0.15.0
+      - run: devbox run -- just vuln
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jetify-com/devbox-install-action@v0.15.0
+      - run: devbox run -- just e2e
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jetify-com/devbox-install-action@v0.15.0
+      - run: devbox run -- just docs
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jetify-com/devbox-install-action@v0.15.0
+      - run: devbox run -- just docker-build
+
+  # Builds the real release packages so a broken release is caught before tagging.
+  packages:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-flutter
+      - uses: extractions/setup-just@v4
+      - run: just package-apk 0.0.0.ci
+      - run: just package-linux 0.0.0.ci
