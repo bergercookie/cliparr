@@ -6,9 +6,12 @@ runs:
   steps:
     - shell: bash
       run: |
-        base=https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous
+        github=https://github.com/linuxdeploy
         mkdir -p "$HOME/bin"
-        curl -fsSL -o "$HOME/bin/linuxdeploy" "$base/linuxdeploy-x86_64.AppImage"
-        curl -fsSL -o "$HOME/bin/linuxdeploy-plugin-appimage" "$base/linuxdeploy-plugin-appimage-x86_64.AppImage"
+        curl -fsSL -o "$HOME/bin/linuxdeploy" \
+          "$github/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"
+        # The AppImage plugin is a separate project with its own releases.
+        curl -fsSL -o "$HOME/bin/linuxdeploy-plugin-appimage" \
+          "$github/linuxdeploy-plugin-appimage/releases/download/continuous/linuxdeploy-plugin-appimage-x86_64.AppImage"
         chmod +x "$HOME/bin/"*
         echo "$HOME/bin" >> "$GITHUB_PATH"

@@ -20,3 +20,6 @@
 .idea/
 .vscode/
 .DS_Store
+
+# devbox working files
+/.devbox/

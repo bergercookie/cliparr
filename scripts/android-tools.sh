@@ -34,9 +34,10 @@ apk_signers() {
     echo "$output" >&2
     return 1
   fi
-  # Older versions print "Signer #1 certificate ...", newer ones may name the
-  # SDK range instead of a number, so match both.
-  digests="$(sed -n 's/^Signer.* certificate SHA-256 digest: //p' <<<"$output" | sort)"
+  # The line prefix differs between apksigner versions ("Signer #1 certificate",
+  # "V2 Signer: certificate", ...) and the same key can be listed once per
+  # signature scheme, so match on the digest itself and drop duplicates.
+  digests="$(sed -n 's/^.*certificate SHA-256 digest: //p' <<<"$output" | sort -u)"
   if [[ -z "$digests" ]]; then
     echo "no signing certificate found in $1; apksigner said:" >&2
     echo "$output" >&2

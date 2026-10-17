@@ -82,7 +82,7 @@ lint-app:
 [group('check')]
 lint-bash:
     #!/usr/bin/env bash
-    mapfile -t scripts < <(find . -name '*.sh' -not -path './app/*' -not -path './.git/*' -not -path './build/*' -not -path './.venv/*')
+    mapfile -t scripts < <(find . -name '*.sh' -not -path './app/*' -not -path './.git/*' -not -path './build/*' -not -path './.venv/*' -not -path './.devbox/*' -not -path '*/node_modules/*')
     shellcheck "${scripts[@]}"
     shfmt -d -i 2 -ci "${scripts[@]}"
 
