@@ -67,7 +67,8 @@ void main() {
     );
 
     expect(find.text('"Yo Adrian!"'), findsOneWidget);
-    expect(find.text('Rocky (1976)  ·  1:05-2:05'), findsOneWidget);
+    expect(find.text('Rocky (1976)'), findsOneWidget);
+    expect(find.text('1:05–2:05'), findsNWidgets(2)); // one badge per clip
     expect(find.text('classic'), findsOneWidget);
     expect(find.text('"Never give up"'), findsOneWidget);
   });

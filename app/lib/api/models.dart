@@ -48,6 +48,7 @@ class Clip {
     required this.quote,
     required this.note,
     required this.tags,
+    this.updatedAt,
   });
 
   factory Clip.fromJson(Map<String, dynamic> json) => Clip(
@@ -69,6 +70,57 @@ class Clip {
   final String quote;
   final String note;
   final List<String> tags;
+
+  /// When the clip was last edited; changes the thumbnail address so a stale
+  /// picture is never shown after the times change.
+  final DateTime? updatedAt;
+}
+
+/// A running Jellyfin app (TV, phone, browser tab) that can be told to play.
+class JellyfinDevice {
+  const JellyfinDevice({
+    required this.id,
+    required this.name,
+    required this.client,
+  });
+
+  factory JellyfinDevice.fromJson(Map<String, dynamic> json) => JellyfinDevice(
+    id: json['id'] as String,
+    name: json['name'] as String,
+    client: json['client'] as String,
+  );
+
+  final String id;
+  final String name;
+  final String client;
+}
+
+/// What the server knows about opening a clip in Jellyfin itself.
+class JellyfinHandoff {
+  const JellyfinHandoff({
+    required this.webUrl,
+    required this.startMs,
+    required this.resumeMs,
+    required this.devices,
+  });
+
+  factory JellyfinHandoff.fromJson(Map<String, dynamic> json) =>
+      JellyfinHandoff(
+        webUrl: json['webUrl'] as String,
+        startMs: json['startMs'] as int,
+        resumeMs: json['resumeMs'] as int,
+        devices: (json['devices'] as List<dynamic>)
+            .map((e) => JellyfinDevice.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+
+  /// Opens the item in Jellyfin's web interface.
+  final String webUrl;
+  final int startMs;
+
+  /// Where the user would currently resume the item, 0 if not started.
+  final int resumeMs;
+  final List<JellyfinDevice> devices;
 }
 
 /// The editable part of a clip, sent when creating or updating.

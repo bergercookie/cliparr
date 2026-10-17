@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../api/api_client.dart';
 import '../api/models.dart';
 import '../state/session.dart';
-import '../util/time_format.dart';
+import '../widgets/clip_card.dart';
 import 'clip_editor_screen.dart';
 import 'clip_view_screen.dart';
 import 'settings_screen.dart';
@@ -141,9 +140,10 @@ class _ClipsScreenState extends State<ClipsScreen> {
                   onRefresh: () async => _reload(),
                   child: ListView.builder(
                     itemCount: clips.length,
-                    itemBuilder: (context, i) => _ClipCard(
+                    itemBuilder: (context, i) => ClipCard(
+                      session: widget.session,
                       clip: clips[i],
-                      onOpen: () => Navigator.of(context).push(
+                      onPlay: () => Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (_) => ClipViewScreen(
                             session: widget.session,
@@ -163,77 +163,4 @@ class _ClipsScreenState extends State<ClipsScreen> {
       ),
     );
   }
-}
-
-class _ClipCard extends StatelessWidget {
-  const _ClipCard({
-    required this.clip,
-    required this.onOpen,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  final Clip clip;
-  final VoidCallback onOpen;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      child: InkWell(
-        onTap: onOpen,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 4, 12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (clip.quote.isNotEmpty)
-                      Text(
-                        '"${clip.quote}"',
-                        style: theme.textTheme.titleMedium,
-                      ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${clip.title}  ·  ${formatMs(clip.startMs)}-${formatMs(clip.endMs)}',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                    if (clip.tags.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Wrap(
-                          spacing: 6,
-                          children: [
-                            for (final tag in clip.tags) Chip(label: Text(tag)),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              PopupMenuButton<String>(
-                onSelected: (v) => v == 'edit' ? onEdit() : onDelete(),
-                itemBuilder: (_) => const [
-                  PopupMenuItem(value: 'edit', child: Text('Edit')),
-                  PopupMenuItem(value: 'delete', child: Text('Delete')),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Shows an [ApiException] (or any error) as a snackbar.
-void showError(BuildContext context, Object error) {
-  final message = error is ApiException ? error.message : '$error';
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
 }

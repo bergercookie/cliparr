@@ -91,4 +91,55 @@ void main() {
       'https://home.lan/cliparr/api/items/abc/stream',
     );
   });
+
+  test('thumbnail address changes when the clip is edited', () {
+    final api = ApiClient(baseUrl: Uri.parse('http://server:8080'));
+    Clip clipAt(DateTime updatedAt) => Clip(
+      id: 7,
+      itemId: 'i',
+      title: 't',
+      startMs: 0,
+      endMs: 1000,
+      quote: '',
+      note: '',
+      tags: const [],
+      updatedAt: updatedAt,
+    );
+
+    final before = api.thumbnailUrl(clipAt(DateTime.utc(2026, 1, 1)));
+    final after = api.thumbnailUrl(clipAt(DateTime.utc(2026, 1, 2)));
+
+    expect(before.path, '/api/clips/7/thumbnail');
+    expect(before.queryParameters['v'], isNot(after.queryParameters['v']));
+  });
+
+  test('handoff, play and resume talk to the clip endpoints', () async {
+    final seen = <String>[];
+    final api = clientWith((r) {
+      seen.add('${r.method} ${r.url.path} ${r.body}');
+      if (r.method == 'GET') {
+        return json({
+          'webUrl': 'https://jf.example.com/web/index.html#!/details?id=1',
+          'startMs': 65000,
+          'resumeMs': 0,
+          'devices': [
+            {'id': 'tv', 'name': 'Living Room TV', 'client': 'Android TV'},
+          ],
+        });
+      }
+      return http.Response('', 204);
+    });
+
+    final handoff = await api.jellyfinHandoff(7);
+    await api.playOnDevice(7, 'tv');
+    await api.setResumePoint(7);
+
+    expect(handoff.devices.single.name, 'Living Room TV');
+    expect(handoff.startMs, 65000);
+    expect(seen, [
+      'GET /api/clips/7/jellyfin ',
+      'POST /api/clips/7/jellyfin/play {"deviceId":"tv"}',
+      'POST /api/clips/7/jellyfin/resume ',
+    ]);
+  });
 }

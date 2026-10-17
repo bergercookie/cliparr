@@ -35,6 +35,13 @@ class ApiClient {
       token == null ? const {} : {'Authorization': 'Bearer $token'};
 
   Uri streamUrl(String itemId) => _url('/api/items/$itemId/stream');
+
+  /// A preview picture of the clip. The version in the address makes a
+  /// changed clip load a fresh picture instead of a cached old one.
+  Uri thumbnailUrl(Clip clip) => _url('/api/clips/${clip.id}/thumbnail', {
+    if (clip.updatedAt != null)
+      'v': '${clip.updatedAt!.millisecondsSinceEpoch}',
+  });
   Uri imageUrl(String itemId) => _url('/api/items/$itemId/image');
 
   /// Returns the server version. Used to verify a server URL before login.
@@ -95,6 +102,24 @@ class ApiClient {
   );
 
   Future<void> deleteClip(int id) => _send('DELETE', '/api/clips/$id');
+
+  Future<JellyfinHandoff> jellyfinHandoff(int clipId) async =>
+      JellyfinHandoff.fromJson(
+        await _send('GET', '/api/clips/$clipId/jellyfin')
+            as Map<String, dynamic>,
+      );
+
+  /// Starts the clip's movie on a running Jellyfin app, at the clip start.
+  Future<void> playOnDevice(int clipId, String deviceId) => _send(
+    'POST',
+    '/api/clips/$clipId/jellyfin/play',
+    body: {'deviceId': deviceId},
+  );
+
+  /// Makes Jellyfin's Resume button start at the clip. Replaces the user's
+  /// real resume position, so ask before calling this.
+  Future<void> setResumePoint(int clipId) =>
+      _send('POST', '/api/clips/$clipId/jellyfin/resume');
 
   Uri _url(String path, [Map<String, String>? query]) {
     final base = baseUrl.path.endsWith('/')

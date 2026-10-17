@@ -5,7 +5,6 @@ import '../state/session.dart';
 import '../util/time_format.dart';
 import '../widgets/clip_player.dart';
 import '../widgets/error_text.dart';
-import 'clips_screen.dart' show showError;
 
 /// Creates a clip (pick an item, then mark its range) or edits an existing one.
 /// Pops `true` when something was saved.

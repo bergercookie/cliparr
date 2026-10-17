@@ -4,6 +4,7 @@ import '../api/models.dart';
 import '../state/session.dart';
 import '../util/time_format.dart';
 import '../widgets/clip_player.dart';
+import '../widgets/open_in_jellyfin.dart';
 
 /// Plays one saved clip on a loop.
 class ClipViewScreen extends StatelessWidget {
@@ -16,7 +17,16 @@ class ClipViewScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(clip.title)),
+      appBar: AppBar(
+        title: Text(clip.title),
+        actions: [
+          IconButton(
+            tooltip: 'Open in Jellyfin',
+            icon: const Icon(Icons.open_in_new),
+            onPressed: () => showOpenInJellyfin(context, session, clip),
+          ),
+        ],
+      ),
       body: ListView(
         children: [
           ClipPlayer(
