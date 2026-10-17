@@ -133,6 +133,26 @@ test: test-go test-app test-scripts
 e2e:
     e2e/run.sh
 
+# Build the old, new and wrong-key APKs for the Android upgrade test into build/upgrade-test/ (needs the Android SDK).
+[group('check')]
+upgrade-apks:
+    scripts/build-upgrade-apks.sh
+
+# Check that NEW is an acceptable in-place update of OLD: same package, same signing key, higher version code. No device needed.
+[group('check')]
+upgrade-static old="build/upgrade-test/old.apk" new="build/upgrade-test/new.apk":
+    scripts/check-apk-upgrade.sh "{{ old }}" "{{ new }}"
+
+# Android upgrade smoke test on the emulator or device that adb sees: install OLD, launch, update to NEW, launch again.
+[group('check')]
+upgrade-check old="build/upgrade-test/old.apk" new="build/upgrade-test/new.apk" wrong="build/upgrade-test/wrong-key.apk":
+    scripts/check-apk-upgrade.sh "{{ old }}" "{{ new }}"
+    scripts/adb-upgrade-test.sh "{{ old }}" "{{ new }}" "{{ wrong }}"
+
+# Build test APKs and run the whole upgrade test (needs a running emulator or device).
+[group('check')]
+upgrade-test: upgrade-apks upgrade-check
+
 # Print the coverage of the last `just test` (also added to the GitHub job summary in CI).
 [group('check')]
 coverage:
@@ -142,7 +162,7 @@ coverage:
 [group('check')]
 check: lint test
 
-# Everything CI runs.
+# Everything CI runs, except the Android upgrade test (it needs an emulator; see `just upgrade-test`).
 [group('check')]
 ci: check vuln e2e docs
 

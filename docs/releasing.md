@@ -16,6 +16,8 @@ The release workflow builds everything and creates the GitHub release with:
 - `SHA256SUMS`, which the Android app uses to verify downloads
 - Docker images `ghcr.io/bergercookie/cliparr` and `ghcr.io/bergercookie/cliparr-debug` for amd64 and arm64, tagged `0.2.0`, `0.2` and `latest`
 
+Before anything is published, the workflow installs the previous release's APK on an emulator and updates it to the new one. If Android would refuse that update (wrong signing key, version not higher) or the new version does not start, the release stops. See [Development](development.md#android-upgrade-test).
+
 ## Nightly releases
 
 Every night at 02:17 UTC the nightly workflow publishes a prerelease, unless nothing changed since the previous nightly. You can also start it by hand from the Actions tab, which always builds.

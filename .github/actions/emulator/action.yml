@@ -1,0 +1,23 @@
+name: Run on an Android emulator
+description: Starts a headless Android emulator and runs a command while it is up. The caller must have Java and the Android SDK (GitHub's Ubuntu runners do).
+
+inputs:
+  script:
+    description: Command to run once the emulator has booted
+    required: true
+
+runs:
+  using: composite
+  steps:
+    # Hardware acceleration: without it the emulator is far too slow.
+    - shell: bash
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+    - uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: 34
+        arch: x86_64
+        disable-animations: true
+        script: ${{ inputs.script }}

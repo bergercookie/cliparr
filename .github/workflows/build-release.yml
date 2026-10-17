@@ -71,6 +71,41 @@ jobs:
           name: android
           path: dist/*
 
+  # Before anything is published, check that users of the previous release can
+  # update to this one: same key, higher version, and the app starts afterwards.
+  upgrade:
+    needs: android
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: extractions/setup-just@v4
+      - uses: actions/download-artifact@v8
+        with:
+          name: android
+          path: dist
+      - name: Fetch the APK of the previous release
+        id: previous
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="$(gh release list --limit 1 --json tagName --jq '.[0].tagName // empty')"
+          if [[ -z "$tag" ]]; then
+            echo "No earlier release, so there is nothing to upgrade from."
+            exit 0
+          fi
+          gh release download "$tag" --pattern '*.apk' --dir previous
+          echo "apk=$(ls previous/*.apk)" >> "$GITHUB_OUTPUT"
+      - name: Check the upgrade is acceptable to Android
+        if: steps.previous.outputs.apk != ''
+        run: just upgrade-static "${{ steps.previous.outputs.apk }}" "dist/cliparr-${{ inputs.version }}.apk"
+      - name: Upgrade on an emulator
+        if: steps.previous.outputs.apk != ''
+        uses: ./.github/actions/emulator
+        with:
+          script: just upgrade-check "${{ steps.previous.outputs.apk }}" "dist/cliparr-${{ inputs.version }}.apk" ""
+
   docker:
     runs-on: ubuntu-latest
     permissions:
@@ -89,7 +124,7 @@ jobs:
       - run: just docker-publish "${{ inputs.version }}"
 
   publish:
-    needs: [linux, android, docker]
+    needs: [linux, android, upgrade, docker]
     runs-on: ubuntu-latest
     permissions:
       contents: write

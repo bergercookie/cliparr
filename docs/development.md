@@ -50,6 +50,15 @@ To work on the interface with the fake Jellyfin: run `just dev`, build the web a
 
 Add a test with every behaviour change. See `AGENTS.md` for the conventions.
 
+## Android upgrade test
+
+An Android update fails if the new APK has a different signing key, a different package name or a lower version code, and nobody notices until a user complains. Two scripts guard against that:
+
+- **Static check** (`just upgrade-static OLD NEW`): needs only the Android SDK. It compares the two APKs and fails on any of those three mistakes. It runs in a few seconds.
+- **Emulator test** (`just upgrade-check OLD NEW`): needs an emulator or phone that `adb` can see. It installs `OLD`, starts it, updates to `NEW` the way Android's updater does, and checks the new version starts. It also checks that Android rejects an update signed with a different key.
+
+`just upgrade-test` builds two throwaway versions of the current code (`0.0.1` and `0.0.2`, signed with a temporary key that is not the release key) and runs both checks. CI does this on every pull request. The release workflow does it again before publishing, using the APK of the previous release as `OLD`, so a release that existing users could not install never gets published.
+
 ## Coverage reports
 
 CI uploads coverage to [Codecov](https://about.codecov.io/), which comments on pull requests and serves the README badge. One-time setup: sign in to Codecov with GitHub, enable this repository, and add the upload token as the repository secret `CODECOV_TOKEN`. Until then the upload is skipped and CI still passes. Coverage also appears in each CI run's summary.

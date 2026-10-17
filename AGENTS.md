@@ -52,6 +52,7 @@ Everything goes through the `justfile`. Do not invent your own commands.
 
 - The APK must always be signed with the project key (GitHub secrets `ANDROID_KEYSTORE_*`),
   otherwise Android refuses in-place updates. Never publish a debug-signed APK. See `docs/releasing.md`.
+- `just upgrade-static OLD NEW` and `just upgrade-test` check that an update installs; keep them passing.
 - The app learns its own version from `--dart-define=CLIPARR_VERSION` (set by the `just` recipes).
 
 ## Versions and releases
