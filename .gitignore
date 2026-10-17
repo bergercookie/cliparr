@@ -1,0 +1,22 @@
+# build output
+/build/
+/dist/
+/.venv/
+
+# frontend bundled into the Go binary (produced by `just build-web`)
+/server/internal/web/dist/*
+!/server/internal/web/dist/.gitkeep
+
+# docs
+/docs/_build/
+
+# local dev data
+/server/data/
+*.db
+*.db-shm
+*.db-wal
+
+# editors / OS
+.idea/
+.vscode/
+.DS_Store

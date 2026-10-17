@@ -1,0 +1,12 @@
+.git
+.github
+build
+dist
+docs
+e2e
+packaging
+app/build
+app/.dart_tool
+app/android
+app/linux
+server/internal/web/dist
