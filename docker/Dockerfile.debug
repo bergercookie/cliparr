@@ -1,0 +1,11 @@
+# syntax=docker/dockerfile:1
+#
+# Troubleshooting sidecar. Run it next to Cliparr (same Docker network) and
+# `docker exec` into it to test DNS, connectivity and the reverse proxy.
+# See docs/troubleshooting.md.
+
+FROM nicolaka/netshoot:v0.16
+LABEL org.opencontainers.image.source="https://github.com/bergercookie/cliparr" \
+      org.opencontainers.image.description="Network troubleshooting sidecar for Cliparr (netshoot + a diagnose script)"
+COPY docker/debug/diagnose.sh /usr/local/bin/cliparr-diagnose
+CMD ["sleep", "infinity"]

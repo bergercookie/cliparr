@@ -1,0 +1,25 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/main/.schema/devbox.schema.json",
+  "packages": [
+    "just@latest",
+    "go@latest",
+    "golangci-lint@latest",
+    "govulncheck@latest",
+    "flutter@latest",
+    "shellcheck@latest",
+    "shfmt@latest",
+    "hadolint@latest",
+    "actionlint@latest",
+    "pre-commit@latest",
+    "python3@latest",
+    "jq@latest",
+    "curl@latest",
+    "caddy@latest",
+    "gh@latest"
+  ],
+  "shell": {
+    "init_hook": [
+      "echo 'Cliparr dev shell. Run `just` to see what you can do.'"
+    ]
+  }
+}

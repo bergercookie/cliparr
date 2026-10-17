@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Cliparr
+Comment=Save and replay your favorite Jellyfin moments
+Exec=cliparr
+Icon=cliparr
+Categories=AudioVideo;Video;
+Terminal=false

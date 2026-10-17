@@ -1,0 +1,45 @@
+# Install the git hook with `just setup`. Run everything with `just lint`.
+# Every hook calls a `just lint-*` recipe, so the justfile stays the single
+# place that knows how to lint this repository.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+
+  - repo: local
+    hooks:
+      - id: lint-go
+        name: lint go (gofmt, go vet, golangci-lint)
+        entry: just lint-go
+        language: system
+        files: ^server/
+        pass_filenames: false
+      - id: lint-app
+        name: lint flutter app (dart format, analyze)
+        entry: just lint-app
+        language: system
+        files: ^app/
+        pass_filenames: false
+      - id: lint-bash
+        name: lint bash (shellcheck, shfmt)
+        entry: just lint-bash
+        language: system
+        files: \.sh$
+        pass_filenames: false
+      - id: lint-docker
+        name: lint Dockerfiles (hadolint)
+        entry: just lint-docker
+        language: system
+        files: ^docker/
+        pass_filenames: false
+      - id: lint-actions
+        name: lint GitHub workflows (actionlint)
+        entry: just lint-actions
+        language: system
+        files: ^\.github/workflows/
+        pass_filenames: false

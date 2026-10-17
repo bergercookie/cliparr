@@ -1,0 +1,20 @@
+# Codecov posts the coverage comment on pull requests and serves the README badge.
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 2% # allow small dips without failing the check
+    patch:
+      default:
+        target: auto
+
+flags:
+  server:
+    paths: [server/]
+  app:
+    paths: [app/]
+
+comment:
+  layout: "reach, diff, flags, files"
+  require_changes: false
