@@ -39,7 +39,7 @@ RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
     go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o /out/cliparr ./cmd/cliparr
 
 # --- 3. Runtime image: the binary plus ffmpeg for the clip preview pictures ---
-FROM alpine:3.22
+FROM alpine:3.24
 LABEL org.opencontainers.image.source="https://github.com/bergercookie/cliparr" \
       org.opencontainers.image.description="Save and replay your favorite Jellyfin moments"
 RUN apk add --no-cache ffmpeg ca-certificates \
