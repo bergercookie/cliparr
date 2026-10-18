@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../api/models.dart';
 import '../state/session.dart';
 import '../widgets/clip_card.dart';
+import '../widgets/first_clip_guide.dart';
 import 'clip_editor_screen.dart';
 import 'clip_view_screen.dart';
 import 'settings_screen.dart';
@@ -21,6 +22,9 @@ class _ClipsScreenState extends State<ClipsScreen> {
   final _search = TextEditingController();
   late Future<List<Clip>> _clips;
 
+  /// The search the shown list answers, which can differ from what is typed.
+  String _query = '';
+
   @override
   void initState() {
     super.initState();
@@ -34,10 +38,11 @@ class _ClipsScreenState extends State<ClipsScreen> {
   }
 
   Future<List<Clip>> _load() =>
-      widget.session.run((api) => api.listClips(query: _search.text.trim()));
+      widget.session.run((api) => api.listClips(query: _query));
 
   void _reload() {
     setState(() {
+      _query = _search.text.trim();
       _clips = _load();
     });
   }
@@ -130,11 +135,10 @@ class _ClipsScreenState extends State<ClipsScreen> {
                 }
                 final clips = snapshot.data!;
                 if (clips.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'No clips yet. Tap "New clip" to save a moment.',
-                    ),
-                  );
+                  if (_query.isNotEmpty) {
+                    return Center(child: Text('No clips match "$_query".'));
+                  }
+                  return FirstClipGuide(onNewClip: _openEditor);
                 }
                 return RefreshIndicator(
                   onRefresh: () async => _reload(),

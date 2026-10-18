@@ -71,9 +71,9 @@ def enable_semantics(page: Page) -> None:
     page.wait_for_timeout(500)
 
 
-def log_in(page: Page) -> None:
+def log_in(page: Page, user: str = "alice") -> None:
     # The username field has focus when the page opens.
-    page.keyboard.type("alice")
+    page.keyboard.type(user)
     page.keyboard.press("Tab")
     page.keyboard.type("pw")
     page.keyboard.press("Enter")
@@ -109,6 +109,9 @@ def take(browser, base: str, out: Path, *, prefix: str, dark: bool, viewport: di
 
     page.get_by_role("button", name="Settings").click()
     shoot(page, out, f"{prefix}settings")
+    page.mouse.move(500, 400)
+    page.mouse.wheel(0, 2000)  # down to the panel for other devices
+    shoot(page, out, f"{prefix}settings-other-devices")
 
     # Reloading returns to the clips page: the login cookie survives.
     open_app(page, base)
@@ -128,6 +131,16 @@ def take(browser, base: str, out: Path, *, prefix: str, dark: bool, viewport: di
     context.close()
 
 
+def take_first_clip(browser, base: str, out: Path) -> None:
+    """What a user without any clips sees first: bob has none."""
+    context = browser.new_context(viewport={"width": 1000, "height": 720})
+    page = context.new_page()
+    open_app(page, base)
+    log_in(page, "bob")
+    shoot(page, out, "first-clip")
+    context.close()
+
+
 def main() -> None:
     base, out = sys.argv[1].rstrip("/"), Path(sys.argv[2])
     out.mkdir(parents=True, exist_ok=True)
@@ -136,6 +149,7 @@ def main() -> None:
     with sync_playwright() as p:
         browser = p.chromium.launch(executable_path=CHROMIUM) if CHROMIUM else p.chromium.launch()
         take(browser, base, out, prefix="", dark=False, viewport=desktop, all_screens=True)
+        take_first_clip(browser, base, out)
         take(browser, base, out, prefix="dark-", dark=True, viewport=desktop, all_screens=False)
         take(browser, base, out, prefix="mobile-", dark=False, viewport={"width": 390, "height": 760}, all_screens=False)
         browser.close()

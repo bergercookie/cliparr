@@ -6,6 +6,7 @@ import '../services.dart';
 import '../state/session.dart';
 import '../update/update_checker.dart';
 import '../update/version.dart';
+import '../widgets/connect_devices.dart';
 
 /// Server address, versions and app updates.
 class SettingsScreen extends StatefulWidget {
@@ -195,6 +196,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: const Text('App version'),
             subtitle: Text(services.currentVersion),
           ),
+          if (kIsWeb && widget.session.serverUrl != null) ...[
+            const _SectionTitle('Other devices'),
+            ConnectDevices(address: widget.session.serverUrl!),
+          ],
           if (_showUpdates) ..._updateSection(services),
         ],
       ),

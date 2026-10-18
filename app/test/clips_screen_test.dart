@@ -1,3 +1,4 @@
+import 'package:cliparr/screens/clip_editor_screen.dart';
 import 'package:cliparr/screens/clips_screen.dart';
 import 'package:cliparr/services.dart';
 import 'package:cliparr/state/session.dart';
@@ -77,6 +78,25 @@ void main() {
     await pumpClips(tester, (_) => jsonResponse([]));
 
     expect(find.textContaining('No clips yet'), findsOneWidget);
+    expect(find.textContaining('mark where the moment starts'), findsOneWidget);
+    expect(find.text('Or bookmark while watching in Jellyfin'), findsOneWidget);
+
+    await tester.tap(find.text('Save your first clip'));
+    await tester.pumpAndSettle();
+    expect(find.byType(ClipEditorScreen), findsOneWidget);
+  });
+
+  testWidgets('a search without matches does not tell the user to start over', (
+    tester,
+  ) async {
+    await pumpClips(tester, (_) => jsonResponse([]));
+
+    await tester.enterText(find.byType(SearchBar), 'adrian');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(find.text('No clips match "adrian".'), findsOneWidget);
+    expect(find.textContaining('No clips yet'), findsNothing);
   });
 
   testWidgets('searching asks the server for matching clips', (tester) async {
