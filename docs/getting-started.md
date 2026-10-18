@@ -8,28 +8,10 @@
 
 ## Install
 
-Download the commented example and save it as `compose.yaml` on your server:
+Download the commented example, [`compose.example.yaml`](https://github.com/bergercookie/cliparr/blob/master/compose.example.yaml), and save it as `compose.yaml` on your server:
 
 ```sh
 curl -fsSL -o compose.yaml https://raw.githubusercontent.com/bergercookie/cliparr/master/compose.example.yaml
-```
-
-Or create `compose.yaml` yourself with the same minimum:
-
-```yaml
-services:
-  cliparr:
-    image: ghcr.io/bergercookie/cliparr:latest
-    restart: unless-stopped
-    ports:
-      - "8080:8080"
-    environment:
-      CLIPARR_JELLYFIN_URL: http://192.168.1.10:8096
-    volumes:
-      - cliparr-data:/data
-
-volumes:
-  cliparr-data:
 ```
 
 Set `CLIPARR_JELLYFIN_URL` to the address of Jellyfin **as seen from the container**:

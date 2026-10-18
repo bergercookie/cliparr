@@ -30,29 +30,13 @@ Cliparr only stores *where* a clip is (item, start, end) plus your text, and sma
 
 ## Quick start
 
-You need a running Jellyfin server and Docker with Compose. Save this as `compose.yaml`, set your Jellyfin address, and start it:
-
-```yaml
-services:
-  cliparr:
-    image: ghcr.io/bergercookie/cliparr:latest
-    restart: unless-stopped
-    ports:
-      - "8080:8080"
-    environment:
-      CLIPARR_JELLYFIN_URL: http://192.168.1.10:8096 # how this container reaches Jellyfin
-    volumes:
-      - cliparr-data:/data
-
-volumes:
-  cliparr-data:
-```
+You need a running Jellyfin server and Docker with Compose. Download the example [`compose.example.yaml`](compose.example.yaml) as `compose.yaml`, set `CLIPARR_JELLYFIN_URL` in it to your Jellyfin address, and start it:
 
 ```sh
+curl -fsSL -o compose.yaml https://raw.githubusercontent.com/bergercookie/cliparr/master/compose.example.yaml
+# edit compose.yaml: set CLIPARR_JELLYFIN_URL
 docker compose up -d
 ```
-
-A commented version with the optional settings is in [`compose.example.yaml`](compose.example.yaml).
 
 Open <http://localhost:8080> and log in with your Jellyfin username and password.
 
