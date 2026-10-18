@@ -117,7 +117,7 @@ func run(log *slog.Logger) error {
 		Addr: cfg.Listen,
 		Handler: api.New(api.Options{
 			Store: st, Jellyfin: jf, Version: version, Log: log, Web: web.FS(), ProxyAuth: cfg.ProxyAuth,
-			JellyfinPublicURL: cfg.JellyfinPublicURL, Thumbnails: thumbs,
+			JellyfinPublicURL: cfg.JellyfinPublicURL, Thumbnails: thumbs, DisablePasswordLogin: !cfg.PasswordLogin,
 		}),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
@@ -134,7 +134,7 @@ func run(log *slog.Logger) error {
 	if advice := cfg.PublicURLAdvice(); advice != "" {
 		log.Warn(advice)
 	}
-	go watchJellyfin(ctx, log, jf, cfg.JellyfinURL, 10*time.Second)
+	go watchJellyfin(ctx, log, jf, cfg.JellyfinURL, 10*time.Second, !cfg.PasswordLogin)
 	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}

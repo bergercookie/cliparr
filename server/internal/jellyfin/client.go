@@ -105,6 +105,60 @@ func (c *Client) Authenticate(ctx context.Context, username, password string) (S
 	return Session{User: User{ID: resp.User.Id, Name: resp.User.Name}, Token: resp.AccessToken}, nil
 }
 
+// QuickConnect is a sign-in that waits for the user to approve it in one of their
+// own Jellyfin apps. Code is what the user types there; Secret stays with Cliparr
+// and proves, later, that this is the sign-in the user approved.
+type QuickConnect struct {
+	Code   string
+	Secret string
+}
+
+// QuickConnectEnabled reports whether Jellyfin lets people sign in with a code.
+func (c *Client) QuickConnectEnabled(ctx context.Context) (bool, error) {
+	var enabled bool
+	if err := c.do(ctx, http.MethodGet, "/QuickConnect/Enabled", "", nil, nil, &enabled); err != nil {
+		return false, err
+	}
+	return enabled, nil
+}
+
+// StartQuickConnect asks Jellyfin for a code. It fails with ErrUnauthorized when
+// Quick Connect is switched off on the server.
+func (c *Client) StartQuickConnect(ctx context.Context) (QuickConnect, error) {
+	var resp struct{ Code, Secret string }
+	if err := c.do(ctx, http.MethodPost, "/QuickConnect/Initiate", "", nil, nil, &resp); err != nil {
+		return QuickConnect{}, err
+	}
+	return QuickConnect{Code: resp.Code, Secret: resp.Secret}, nil
+}
+
+// QuickConnectApproved reports whether the user has typed the code into a Jellyfin
+// app yet. ErrNotFound means the request is unknown or has expired.
+func (c *Client) QuickConnectApproved(ctx context.Context, secret string) (bool, error) {
+	var resp struct{ Authenticated bool }
+	if err := c.do(ctx, http.MethodGet, "/QuickConnect/Connect", "", url.Values{"secret": {secret}}, nil, &resp); err != nil {
+		return false, err
+	}
+	return resp.Authenticated, nil
+}
+
+// AuthenticateQuickConnect trades an approved secret for the user's own Jellyfin
+// login. Cliparr never sees a password on this route.
+func (c *Client) AuthenticateQuickConnect(ctx context.Context, secret string) (Session, error) {
+	body, err := json.Marshal(map[string]string{"Secret": secret})
+	if err != nil {
+		return Session{}, err
+	}
+	var resp struct {
+		AccessToken string
+		User        struct{ Id, Name string }
+	}
+	if err := c.do(ctx, http.MethodPost, "/Users/AuthenticateWithQuickConnect", "", nil, body, &resp); err != nil {
+		return Session{}, err
+	}
+	return Session{User: User{ID: resp.User.Id, Name: resp.User.Name}, Token: resp.AccessToken}, nil
+}
+
 // UserByToken returns the user an access token belongs to. API keys are not
 // tied to a user and are rejected, so only a real user's token gets through.
 func (c *Client) UserByToken(ctx context.Context, token string) (User, error) {

@@ -121,3 +121,18 @@ func TestPublicURLAdvice(t *testing.T) {
 		})
 	}
 }
+
+func TestPasswordLoginIsOnUnlessTurnedOff(t *testing.T) {
+	for value, want := range map[string]bool{"": true, "true": true, "1": true, "false": false, "0": false, " FALSE ": false} {
+		cfg, err := FromEnv(env(map[string]string{"CLIPARR_JELLYFIN_URL": "http://jf:8096", "CLIPARR_PASSWORD_LOGIN": value}))
+		if err != nil {
+			t.Fatalf("%q: %v", value, err)
+		}
+		if cfg.PasswordLogin != want {
+			t.Errorf("%q: PasswordLogin = %v, want %v", value, cfg.PasswordLogin, want)
+		}
+	}
+	if _, err := FromEnv(env(map[string]string{"CLIPARR_JELLYFIN_URL": "http://jf:8096", "CLIPARR_PASSWORD_LOGIN": "maybe"})); err == nil {
+		t.Error("a value that is neither true nor false should be an error")
+	}
+}

@@ -59,6 +59,10 @@ type Server struct {
 	contentType string
 	legacyData  bool
 
+	noQuickConnect bool
+	quickCount     int
+	quick          map[string]*quickConnectRequest // secret -> pending sign-in
+
 	mu       sync.Mutex
 	resume   map[string]int64 // "user/item" -> position in ticks
 	lastPlay *PlayCommand
@@ -100,12 +104,18 @@ func New(options ...Option) *Server {
 		contentType: "video/mp4",
 		resume:      map[string]int64{},
 		playing:     map[string]progress{},
+		quick:       map[string]*quickConnectRequest{},
 	}
 	for _, option := range options {
 		option(s)
 	}
 	s.mux.HandleFunc("GET /System/Info/Public", s.systemInfo)
 	s.mux.HandleFunc("POST /Users/AuthenticateByName", s.authenticate)
+	s.mux.HandleFunc("GET /QuickConnect/Enabled", s.quickConnectEnabled)
+	s.mux.HandleFunc("POST /QuickConnect/Initiate", s.quickConnectInitiate)
+	s.mux.HandleFunc("GET /QuickConnect/Connect", s.quickConnectState)
+	s.mux.HandleFunc("POST /QuickConnect/Authorize", s.quickConnectAuthorize)
+	s.mux.HandleFunc("POST /Users/AuthenticateWithQuickConnect", s.authenticateQuickConnect)
 	s.mux.HandleFunc("GET /Users", s.listUsers)
 	s.mux.HandleFunc("GET /Users/Me", s.me)
 	s.mux.HandleFunc("GET /Items", s.listItems)

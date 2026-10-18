@@ -15,6 +15,45 @@ class User {
   final bool viaProxy;
 }
 
+/// The ways the server lets people log in.
+class LoginOptions {
+  const LoginOptions({required this.password, required this.quickConnect});
+
+  /// Servers from before Quick Connect say nothing about it: passwords only.
+  factory LoginOptions.fromInfo(Map<String, dynamic> json) => LoginOptions(
+    password: json['passwordLogin'] as bool? ?? true,
+    quickConnect: json['quickConnect'] as bool? ?? false,
+  );
+
+  static const passwordOnly = LoginOptions(password: true, quickConnect: false);
+
+  /// Typing the Jellyfin username and password into Cliparr.
+  final bool password;
+
+  /// Typing a code into one of the user's own Jellyfin apps: Cliparr never sees a password.
+  final bool quickConnect;
+}
+
+/// A login that waits for the user to type [code] into one of their Jellyfin apps.
+class QuickConnectRequest {
+  const QuickConnectRequest({
+    required this.id,
+    required this.code,
+    required this.expiresIn,
+  });
+
+  factory QuickConnectRequest.fromJson(Map<String, dynamic> json) =>
+      QuickConnectRequest(
+        id: json['id'] as String,
+        code: json['code'] as String,
+        expiresIn: Duration(seconds: json['expiresInSeconds'] as int? ?? 300),
+      );
+
+  final String id;
+  final String code;
+  final Duration expiresIn;
+}
+
 /// A movie or episode found in the Jellyfin library.
 class Item {
   const Item({

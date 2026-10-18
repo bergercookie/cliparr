@@ -40,7 +40,7 @@ func TestWatchJellyfinReportsVersionOnceItAnswers(t *testing.T) {
 	}))
 
 	var out bytes.Buffer
-	watchJellyfin(t.Context(), logTo(&out), jf, address, time.Millisecond)
+	watchJellyfin(t.Context(), logTo(&out), jf, address, time.Millisecond, false)
 
 	text := out.String()
 	if strings.Count(text, "cannot reach Jellyfin yet") != 1 {
@@ -62,7 +62,7 @@ func TestWatchJellyfinStopsWhenCliparrShutsDown(t *testing.T) {
 	done := make(chan struct{})
 	var out bytes.Buffer
 	go func() {
-		watchJellyfin(ctx, logTo(&out), jf, address, time.Hour)
+		watchJellyfin(ctx, logTo(&out), jf, address, time.Hour, false)
 		close(done)
 	}()
 	time.Sleep(50 * time.Millisecond)
@@ -71,5 +71,45 @@ func TestWatchJellyfinStopsWhenCliparrShutsDown(t *testing.T) {
 	case <-done:
 	case <-time.After(5 * time.Second):
 		t.Fatal("the watcher kept running after shutdown")
+	}
+}
+
+func quickConnectProbe(enabled string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/QuickConnect/Enabled" {
+			_, _ = w.Write([]byte(enabled))
+			return
+		}
+		_, _ = w.Write([]byte(`{"Id":"abc","ServerName":"Home","Version":"12.2.0"}`))
+	})
+}
+
+func TestWatchJellyfinWarnsWhenNobodyCouldSignIn(t *testing.T) {
+	jf, address := clientFor(t, quickConnectProbe("false"))
+	var out bytes.Buffer
+
+	watchJellyfin(t.Context(), logTo(&out), jf, address, time.Millisecond, true)
+
+	if !strings.Contains(out.String(), "nobody can sign in") {
+		t.Errorf("want a warning that nobody can sign in, log:\n%s", out.String())
+	}
+}
+
+func TestWatchJellyfinStaysQuietWhenQuickConnectIsOnOrPasswordsAreAllowed(t *testing.T) {
+	for name, tc := range map[string]struct {
+		enabled      string
+		passwordsOff bool
+	}{
+		"quick connect on, passwords off": {"true", true},
+		"quick connect off, passwords on": {"false", false},
+	} {
+		t.Run(name, func(t *testing.T) {
+			jf, address := clientFor(t, quickConnectProbe(tc.enabled))
+			var out bytes.Buffer
+			watchJellyfin(t.Context(), logTo(&out), jf, address, time.Millisecond, tc.passwordsOff)
+			if strings.Contains(out.String(), "nobody can sign in") {
+				t.Errorf("no warning expected, log:\n%s", out.String())
+			}
+		})
 	}
 }

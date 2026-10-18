@@ -33,6 +33,8 @@ type Options struct {
 	Log       *slog.Logger
 	Web       fs.FS // nil when no frontend is bundled
 	ProxyAuth config.ProxyAuth
+	// DisablePasswordLogin turns off typing a Jellyfin password into Cliparr, leaving Quick Connect.
+	DisablePasswordLogin bool
 
 	// JellyfinPublicURL is Jellyfin's address as seen from users' browsers.
 	JellyfinPublicURL string
@@ -56,6 +58,10 @@ type Server struct {
 	visibleItems *ttlCache[struct{}]      // "userID/itemID" the user may see
 	serverIDs    *ttlCache[string]        // "id" -> Jellyfin server id
 	tokenUsers   *ttlCache[jellyfin.User] // hash of a Jellyfin token -> its user
+
+	disablePasswordLogin bool
+	quickConnects        *pendingQuickConnects
+	quickConnectOn       *ttlCache[bool] // "enabled" -> whether Jellyfin has Quick Connect on
 }
 
 // New returns the root handler.
@@ -67,12 +73,18 @@ func New(o Options) http.Handler {
 		visibleItems: newTTLCache[struct{}](cacheTTL),
 		serverIDs:    newTTLCache[string](cacheTTL),
 		tokenUsers:   newTTLCache[jellyfin.User](cacheTTL),
+
+		disablePasswordLogin: o.DisablePasswordLogin,
+		quickConnects:        newPendingQuickConnects(quickConnectTTL, maxPendingQuickConnects),
+		quickConnectOn:       newTTLCache[bool](cacheTTL),
 	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", s.health)
 	mux.HandleFunc("GET /api/info", s.info)
 	mux.HandleFunc("POST /api/auth/login", s.login)
+	mux.HandleFunc("POST /api/auth/quickconnect", s.startQuickConnect)
+	mux.HandleFunc("GET /api/auth/quickconnect/{id}", s.pollQuickConnect)
 
 	mux.Handle("POST /api/auth/logout", s.authed(s.logout))
 	mux.Handle("GET /api/me", s.authed(s.me))
@@ -164,6 +176,10 @@ func sessionToken(r *http.Request) string {
 }
 
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
+	if s.disablePasswordLogin {
+		writeError(w, http.StatusForbidden, "signing in with a password is turned off on this server; use Quick Connect")
+		return
+	}
 	var req struct{ Username, Password string }
 	if !decodeJSON(w, r, &req) {
 		return
@@ -182,7 +198,12 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadGateway, "could not reach Jellyfin")
 		return
 	}
+	s.startSession(w, r, jfSession, nil)
+}
 
+// startSession logs a user into Cliparr after Jellyfin accepted them, however they
+// proved who they are: it keeps their Jellyfin token, sets the cookie and answers.
+func (s *Server) startSession(w http.ResponseWriter, r *http.Request, jfSession jellyfin.Session, extra map[string]any) {
 	expires := time.Now().Add(sessionTTL)
 	token, err := s.store.CreateSession(r.Context(), store.Session{
 		UserID: jfSession.User.ID, UserName: jfSession.User.Name,
@@ -197,7 +218,11 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, newSessionCookie(r, token, expires, 0))
-	writeJSON(w, http.StatusOK, map[string]any{"token": token, "user": jfSession.User})
+	body := map[string]any{"token": token, "user": jfSession.User}
+	for k, v := range extra {
+		body[k] = v
+	}
+	writeJSON(w, http.StatusOK, body)
 }
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request, p principal) {
@@ -232,8 +257,12 @@ func (s *Server) health(w http.ResponseWriter, _ *http.Request) {
 }
 
 // info is public so apps can verify a server URL before showing the login form.
-func (s *Server) info(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]string{"name": "cliparr", "version": s.version})
+func (s *Server) info(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{
+		"name": "cliparr", "version": s.version,
+		"passwordLogin": !s.disablePasswordLogin,
+		"quickConnect":  s.quickConnectAvailable(r),
+	})
 }
 
 func (s *Server) frontend() http.Handler {

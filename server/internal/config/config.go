@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/netip"
 	"net/url"
+	"strconv"
 	"strings"
 )
 
@@ -18,6 +19,9 @@ type Config struct {
 	JellyfinPublicURL string
 	// FFmpeg is the ffmpeg program used to make clip thumbnails ("off" disables them).
 	FFmpeg string
+	// PasswordLogin lets people type their Jellyfin password into Cliparr. When it is
+	// off, the only way in is Quick Connect, which never shows Cliparr a password.
+	PasswordLogin bool
 	// Listen is the address the HTTP server binds to.
 	Listen string
 	// DataDir is the directory holding the SQLite database.
@@ -69,6 +73,11 @@ func FromEnv(getenv func(string) string) (Config, error) {
 	if err := checkHTTPURL("CLIPARR_JELLYFIN_PUBLIC_URL", cfg.JellyfinPublicURL); err != nil {
 		return Config{}, err
 	}
+	passwordLogin, err := boolFromEnv(getenv, "CLIPARR_PASSWORD_LOGIN", true)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.PasswordLogin = passwordLogin
 	proxy, err := proxyAuthFromEnv(getenv)
 	if err != nil {
 		return Config{}, err
@@ -107,6 +116,18 @@ func looksInternal(raw string) bool {
 		return addr.IsLoopback()
 	}
 	return !strings.Contains(host, ".")
+}
+
+func boolFromEnv(getenv func(string) string, name string, fallback bool) (bool, error) {
+	value := strings.TrimSpace(getenv(name))
+	if value == "" {
+		return fallback, nil
+	}
+	b, err := strconv.ParseBool(value)
+	if err != nil {
+		return false, fmt.Errorf("%s %q must be true or false", name, value)
+	}
+	return b, nil
 }
 
 func checkHTTPURL(name, value string) error {

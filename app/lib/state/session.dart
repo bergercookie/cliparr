@@ -64,8 +64,19 @@ class SessionController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> login(String username, String password) async {
-    final result = await api.login(username, password);
+  Future<void> login(String username, String password) async =>
+      _signedIn(await api.login(username, password));
+
+  /// Asks once whether the user has approved a Quick Connect code. Returns true
+  /// when they had, and the user is then logged in.
+  Future<bool> pollQuickConnect(String id) async {
+    final result = await api.pollQuickConnect(id);
+    if (result == null) return false;
+    await _signedIn(result);
+    return true;
+  }
+
+  Future<void> _signedIn(({User user, String token}) result) async {
     if (!kIsWeb) {
       api.token = result.token;
       await _prefs.setString(_tokenKey, result.token);

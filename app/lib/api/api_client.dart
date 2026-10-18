@@ -68,6 +68,32 @@ class ApiClient {
     );
   }
 
+  /// How this server lets people log in. Asking is harmless before a login.
+  Future<LoginOptions> loginOptions() async => LoginOptions.fromInfo(
+    await _send('GET', '/api/info') as Map<String, dynamic>,
+  );
+
+  /// Starts a login by Quick Connect. The server keeps the secret that Jellyfin
+  /// gave it; the app only gets the code to show and an id to ask with.
+  Future<QuickConnectRequest> startQuickConnect() async =>
+      QuickConnectRequest.fromJson(
+        await _send('POST', '/api/auth/quickconnect') as Map<String, dynamic>,
+      );
+
+  /// Asks whether the user typed the code in yet: null if not, the login once
+  /// they did. Throws when the code has expired.
+  Future<({User user, String token})?> pollQuickConnect(String id) async {
+    final json = await _send(
+      'GET',
+      '/api/auth/quickconnect/$id',
+    ) as Map<String, dynamic>;
+    if (json['status'] != 'approved') return null;
+    return (
+      user: User.fromJson(json['user'] as Map<String, dynamic>),
+      token: json['token'] as String,
+    );
+  }
+
   Future<void> logout() => _send('POST', '/api/auth/logout');
 
   Future<User> me() async =>
