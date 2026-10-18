@@ -98,6 +98,14 @@ class ClipPlayerState extends State<ClipPlayer> {
     _loopEndMs = null;
   }
 
+  void _toggle() {
+    if (_controller.value.isPlaying) {
+      _controller.pause();
+    } else {
+      _play();
+    }
+  }
+
   void _onTick() {
     final end = _loopEndMs;
     if (end != null && positionMs >= end) {
@@ -133,7 +141,11 @@ class ClipPlayerState extends State<ClipPlayer> {
           ),
           child: AspectRatio(
             aspectRatio: value.aspectRatio,
-            child: VideoPlayer(_controller),
+            child: _ClickToToggle(
+              playing: value.isPlaying,
+              onToggle: _toggle,
+              child: VideoPlayer(_controller),
+            ),
           ),
         ),
         Row(
@@ -141,8 +153,7 @@ class ClipPlayerState extends State<ClipPlayer> {
             IconButton(
               tooltip: value.isPlaying ? 'Pause' : 'Play',
               icon: Icon(value.isPlaying ? Icons.pause : Icons.play_arrow),
-              onPressed: () =>
-                  value.isPlaying ? _controller.pause() : _controller.play(),
+              onPressed: _toggle,
             ),
             Expanded(
               child: Slider(
@@ -163,6 +174,44 @@ class ClipPlayerState extends State<ClipPlayer> {
       ],
     );
   }
+}
+
+/// Clicking the video pauses or resumes it. While paused, a big play button
+/// sits on top of it.
+class _ClickToToggle extends StatelessWidget {
+  const _ClickToToggle({
+    required this.playing,
+    required this.onToggle,
+    required this.child,
+  });
+
+  final bool playing;
+  final VoidCallback onToggle;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: playing ? 'Pause' : 'Play',
+    child: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onToggle,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          child,
+          if (!playing)
+            const IgnorePointer(
+              child: CircleAvatar(
+                radius: 32,
+                backgroundColor: Colors.black54,
+                child: Icon(Icons.play_arrow, size: 44, color: Colors.white),
+              ),
+            ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _PlayerMessage extends StatelessWidget {
