@@ -16,6 +16,7 @@ class ClipPlayer extends StatefulWidget {
     this.startMs,
     this.endMs,
     this.autoplay = true,
+    this.restrictToRange = false,
   });
 
   final ApiClient api;
@@ -29,6 +30,10 @@ class ClipPlayer extends StatefulWidget {
   /// Start playing as soon as the video is ready. Browsers may refuse this
   /// until the user has interacted with the page; the video then stays paused.
   final bool autoplay;
+
+  /// Only allow seeking between [startMs] and [endMs], and show times within
+  /// the clip. For viewing a clip; the editor needs the whole video.
+  final bool restrictToRange;
 
   @override
   State<ClipPlayer> createState() => ClipPlayerState();
@@ -130,15 +135,17 @@ class ClipPlayerState extends State<ClipPlayer> {
     return true;
   }
 
-  void _seekBy(Duration step) {
-    final value = _controller.value;
-    final target = value.position + step;
-    _controller.seekTo(
-      target < Duration.zero
-          ? Duration.zero
-          : (target > value.duration ? value.duration : target),
-    );
-  }
+  /// The part of the video that may be played: the clip, or all of it.
+  int get _minMs => _restricted ? _loopStartMs! : 0;
+  int get _maxMs =>
+      _restricted ? _loopEndMs! : _controller.value.duration.inMilliseconds;
+  bool get _restricted =>
+      widget.restrictToRange && _loopStartMs != null && _loopEndMs != null;
+
+  void _seekToMs(int ms) =>
+      _controller.seekTo(Duration(milliseconds: ms.clamp(_minMs, _maxMs)));
+
+  void _seekBy(Duration step) => _seekToMs(positionMs + step.inMilliseconds);
 
   void _toggle() {
     // Leave the button that was clicked, so the keys keep reaching the player.
@@ -154,6 +161,8 @@ class ClipPlayerState extends State<ClipPlayer> {
     final end = _loopEndMs;
     if (end != null && positionMs >= end) {
       _controller.seekTo(Duration(milliseconds: _loopStartMs ?? 0));
+    } else if (_restricted && positionMs < _loopStartMs!) {
+      _controller.seekTo(Duration(milliseconds: _loopStartMs!));
     }
     if (mounted) setState(() {});
   }
@@ -201,16 +210,14 @@ class ClipPlayerState extends State<ClipPlayer> {
             ),
             Expanded(
               child: Slider(
-                value: positionMs
-                    .clamp(0, value.duration.inMilliseconds)
-                    .toDouble(),
-                max: value.duration.inMilliseconds.toDouble(),
-                onChanged: (v) =>
-                    _controller.seekTo(Duration(milliseconds: v.round())),
+                value: positionMs.clamp(_minMs, _maxMs).toDouble(),
+                min: _minMs.toDouble(),
+                max: _maxMs.toDouble(),
+                onChanged: (v) => _seekToMs(v.round()),
               ),
             ),
             Text(
-              '${formatMs(positionMs)} / ${formatMs(value.duration.inMilliseconds)}',
+              '${formatMs(positionMs - _minMs)} / ${formatMs(_maxMs - _minMs)}',
             ),
             const SizedBox(width: 8),
           ],

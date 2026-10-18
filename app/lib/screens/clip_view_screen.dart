@@ -35,6 +35,7 @@ class ClipViewScreen extends StatelessWidget {
             startMs: clip.startMs,
             endMs: clip.endMs,
             autoplay: true,
+            restrictToRange: true,
           ),
           Padding(
             padding: const EdgeInsets.all(16),
