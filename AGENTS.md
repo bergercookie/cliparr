@@ -63,6 +63,11 @@ Everything goes through the `justfile`. Do not invent your own commands.
 - Run `just lint-extension`, `just test-extension` and `just e2e-extension` when you touch it.
 - Also run `just e2e-jellyfin` when you touch the extension or `server/internal/jellyfin/`: it checks them against a real Jellyfin, which the fake one cannot do. It needs ffmpeg and takes a few minutes.
 
+## Docker image
+
+- The image starts as root on purpose: Cliparr gives `/data` to `PUID:PGID` and drops root before it opens the database. Never add a `USER` line, and never let it touch files outside the data folder (it must not follow links).
+- Run `just docker-build` and `just docker-test` when you touch `docker/Dockerfile` or the data folder handling in `server/cmd/cliparr/`.
+
 ## Versions and releases
 
 - Release: push a git tag `vX.Y.Z`. Nightly: next minor + `.postN` suffix (see `docs/releasing.md`).

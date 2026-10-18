@@ -52,6 +52,8 @@ ENV CLIPARR_DATA_DIR=/data \
     CLIPARR_LISTEN=:8080
 VOLUME /data
 EXPOSE 8080
-USER 65532:65532
+# There is no USER line on purpose. The container starts as root only so that Cliparr can
+# give /data to the user in PUID and PGID, and it gives up root before it opens the
+# database or a socket. Run it with `user:` instead and it is never root at all.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s CMD ["cliparr", "healthcheck"]
 ENTRYPOINT ["cliparr"]

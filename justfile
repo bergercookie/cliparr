@@ -56,6 +56,11 @@ docker-build:
         --build-arg VERSION={{ version }} --build-arg FLUTTER_VERSION={{ flutter_version }} .
     docker build -f docker/Dockerfile.debug -t cliparr-debug:dev .
 
+# Check with the real Docker image who owns the files in the data folder (needs the image from docker-build).
+[group('check')]
+docker-test image="cliparr:dev":
+    scripts/docker-test.sh {{ image }}
+
 # --- checks --------------------------------------------------------------------
 
 # Lint everything through pre-commit (the same hooks run on every commit).

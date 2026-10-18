@@ -80,6 +80,10 @@ func run(log *slog.Logger) error {
 	if err != nil {
 		return err
 	}
+	// As root, as the container starts, hand the data folder to PUID:PGID and stop being root.
+	if err := handOverDataDir(log, cfg.DataDir, os.Getenv); err != nil {
+		return err
+	}
 	if err := os.MkdirAll(cfg.DataDir, 0o750); err != nil {
 		return fmt.Errorf("create data dir: %w", err)
 	}
@@ -126,7 +130,7 @@ func run(log *slog.Logger) error {
 	}()
 
 	log.Info("cliparr started", "version", version, "listen", cfg.Listen, "jellyfin", cfg.JellyfinURL,
-		"proxyAuth", cfg.ProxyAuth.Enabled())
+		"proxyAuth", cfg.ProxyAuth.Enabled(), "uid", os.Getuid(), "gid", os.Getgid())
 	if advice := cfg.PublicURLAdvice(); advice != "" {
 		log.Warn(advice)
 	}

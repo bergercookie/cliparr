@@ -39,7 +39,8 @@ func checkWritable(dir, databaseFile string) error {
 }
 
 func notWritable(problem string, cause error) error {
-	return fmt.Errorf("%s by this process (uid %d, gid %d): %w. Make the folder writable for that user, "+
-		`or run the container as the folder's owner with user: "UID:GID" in the Compose file; `+
-		"see Troubleshooting in the documentation", problem, os.Getuid(), os.Getgid(), cause)
+	return fmt.Errorf("%s by this process (uid %d, gid %d): %w. If the container starts as root, set PUID and PGID "+
+		"in the Compose file to your own user and group (`id -u`, `id -g`) and Cliparr takes care of the folder; "+
+		`if you set user: "UID:GID" yourself, make the folder belong to that user. `+
+		"See Troubleshooting in the documentation", problem, os.Getuid(), os.Getgid(), cause)
 }

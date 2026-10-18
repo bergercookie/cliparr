@@ -117,6 +117,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: jetify-com/devbox-install-action@v0.15.0
       - run: devbox run -- just docker-build
+      - run: devbox run -- just docker-test
 
   # Installs an old build on an Android emulator and updates it to a newer one,
   # as a user would. Catches signing and version mistakes before a release.
