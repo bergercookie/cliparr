@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../api/api_client.dart';
 import '../api/models.dart';
@@ -67,6 +68,8 @@ class _LoginScreenState extends State<LoginScreen> {
     });
     try {
       await widget.session.login(_username.text.trim(), _password.text);
+      // Lets the browser offer to save the password.
+      TextInput.finishAutofillContext();
     } on ApiException catch (e) {
       setState(() => _error = e.message);
     } finally {
@@ -135,28 +138,33 @@ class _LoginScreenState extends State<LoginScreen> {
           constraints: const BoxConstraints(maxWidth: 400),
           child: Padding(
             padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Cliparr',
-                  style: Theme.of(context).textTheme.headlineLarge,
-                ),
-                const SizedBox(height: 8),
-                if (_quickConnect != null)
-                  _QuickConnectPanel(
-                    request: _quickConnect!,
-                    onCancel: _stopQuickConnect,
-                  )
-                else
-                  ..._forms(context),
-                if (!kIsWeb)
-                  TextButton(
-                    onPressed: widget.session.forgetServer,
-                    child: Text('Change server (${widget.session.serverUrl})'),
+            // Tells browsers and password managers which fields belong together.
+            child: AutofillGroup(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Cliparr',
+                    style: Theme.of(context).textTheme.headlineLarge,
                   ),
-              ],
+                  const SizedBox(height: 8),
+                  if (_quickConnect != null)
+                    _QuickConnectPanel(
+                      request: _quickConnect!,
+                      onCancel: _stopQuickConnect,
+                    )
+                  else
+                    ..._forms(context),
+                  if (!kIsWeb)
+                    TextButton(
+                      onPressed: widget.session.forgetServer,
+                      child: Text(
+                        'Change server (${widget.session.serverUrl})',
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ),
@@ -187,6 +195,7 @@ class _LoginScreenState extends State<LoginScreen> {
         TextField(
           controller: _username,
           autofocus: true,
+          autofillHints: const [AutofillHints.username],
           textInputAction: TextInputAction.next,
           decoration: const InputDecoration(
             labelText: 'Username',
@@ -197,6 +206,7 @@ class _LoginScreenState extends State<LoginScreen> {
         TextField(
           controller: _password,
           obscureText: true,
+          autofillHints: const [AutofillHints.password],
           decoration: const InputDecoration(
             labelText: 'Password',
             border: OutlineInputBorder(),
