@@ -225,7 +225,7 @@ nightly-needed:
 # Print the version of the next nightly build.
 [group('release')]
 nightly-version:
-    scripts/version.sh next-nightly
+    @scripts/version.sh next-nightly
 
 # Build the .deb and AppImage into dist/. Usage: just package-linux 1.2.3
 [group('release')]
