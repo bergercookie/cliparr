@@ -49,7 +49,9 @@ RUN apk add --no-cache ffmpeg ca-certificates \
     && chown cliparr /data
 COPY --from=server /out/cliparr /usr/local/bin/cliparr
 ENV CLIPARR_DATA_DIR=/data \
-    CLIPARR_LISTEN=:8080
+    CLIPARR_LISTEN=:8080 \
+    PUID=65532 \
+    PGID=65532
 VOLUME /data
 EXPOSE 8080
 # There is no USER line on purpose. The container starts as root only so that Cliparr can

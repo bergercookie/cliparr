@@ -10,7 +10,7 @@ Cliparr is configured with environment variables. Only one is required.
 | `CLIPARR_JELLYFIN_PUBLIC_URL` | same as `CLIPARR_JELLYFIN_URL` | Address of Jellyfin as you type it in your browser, e.g. `https://jellyfin.example.com`. Used for "Open in Jellyfin web" links. Set it when `CLIPARR_JELLYFIN_URL` is an internal name like `http://jellyfin:8096`. Cliparr warns at startup when you have not set it and the Jellyfin address looks like one that only the server can use (`localhost` or a name without dots). |
 | `CLIPARR_LISTEN`       | `:8080`  | Address and port Cliparr listens on inside the container.                                    |
 | `CLIPARR_DATA_DIR`     | `/data` in the image | Directory for the database and the preview pictures. Mount a volume here.        |
-| `PUID` | `65532` | The user number that owns the data folder and runs Cliparr. Use the output of `id -u`. Cannot be 0. See [Data folder and permissions](#data-folder-and-permissions). |
+| `PUID` | `65532` in the Docker image | The user number that owns the data folder and runs Cliparr. Without `PUID` and `PGID`, a program started as root stays root and says so in the log. Use the output of `id -u`. Cannot be 0. See [Data folder and permissions](#data-folder-and-permissions). |
 | `PGID` | same as `PUID` | The group number, from `id -g`. |
 | `CLIPARR_FFMPEG`       | `ffmpeg` | Program that makes the preview pictures. The Docker image includes it. Set to `off` to show movie posters instead. |
 
@@ -34,7 +34,7 @@ The container starts as root for a moment. Before it opens the database or a sin
 
 - **Only a folder of your own helps with backups.** A named Docker volume (`cliparr-data:/data` with a `volumes:` entry) works too, but it lives under `/var/lib/docker`, which only root can read, whoever owns the files.
 - **Back up with Cliparr stopped.** The database is a live SQLite file with side files. Run `docker compose stop`, copy the folder, then `docker compose start`.
-- **Without `PUID` and `PGID`** the files belong to user and group `65532`, the account the image has always used.
+- **Without `PUID` and `PGID` in your Compose file** the image's own defaults apply: the files belong to user and group `65532`, the account the image has always used.
 
 ### Never root at all: `user:`
 

@@ -12,7 +12,7 @@ import (
 )
 
 // handOverDataDir lets a container that starts as root give the data folder to the
-// user the operator chose (PUID and PGID), and then gives up root for good, before
+// user the operator chose (PUID and PGID, which the container image sets), and then gives up root for good, before
 // Cliparr opens its database or a single connection. That way everything Cliparr
 // writes belongs to the operator, who can back the folder up without sudo, even
 // when Docker created the folder as root.
@@ -23,9 +23,13 @@ func handOverDataDir(log *slog.Logger, dir string, getenv func(string) string) e
 	if os.Geteuid() != 0 {
 		return nil
 	}
-	id, err := identityFromEnv(getenv)
+	id, set, err := identityFromEnv(getenv)
 	if err != nil {
 		return err
+	}
+	if !set {
+		log.Warn("Cliparr runs as root: set PUID and PGID to hand its data to a user and stop being root, or start it as that user")
+		return nil
 	}
 	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return fmt.Errorf("create data dir: %w", err)
