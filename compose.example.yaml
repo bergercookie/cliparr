@@ -33,18 +33,5 @@ services:
       # not run as root.
       - cliparr-data:/data
 
-  # Optional: run Jellyfin in this same file. Skip this if you already have one.
-  # jellyfin:
-  #   image: jellyfin/jellyfin:latest
-  #   restart: unless-stopped
-  #   ports:
-  #     - "8096:8096"
-  #   volumes:
-  #     - jellyfin-config:/config
-  #     - jellyfin-cache:/cache
-  #     - /path/to/your/media:/media:ro # CHANGE ME
-
 volumes:
   cliparr-data:
-  # jellyfin-config:
-  # jellyfin-cache:
