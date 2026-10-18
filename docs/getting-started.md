@@ -14,14 +14,14 @@ Download the commented example, [`compose.example.yaml`](https://github.com/berg
 curl -fsSL -o compose.yaml https://raw.githubusercontent.com/bergercookie/cliparr/master/compose.example.yaml
 ```
 
-Set `CLIPARR_JELLYFIN_URL` to the address of Jellyfin **as seen from the container**:
+Edit two things in it. First, set `PUID` and `PGID` to your own user and group, the output of `id -u` and `id -g`: everything Cliparr stores then belongs to you, which makes backups easy. Second, set `CLIPARR_JELLYFIN_URL` to the address of Jellyfin **as seen from the container**:
 
-- Jellyfin in the same Compose file: use its service name, e.g. `http://jellyfin:8096`.
+- Jellyfin in another Compose project on the same Docker network: use its service name, e.g. `http://jellyfin:8096`.
 - Jellyfin in another Compose project or on another machine: use the host's LAN address, e.g. `http://192.168.1.10:8096`. `localhost` will not work, because inside the container that means the container itself.
 
 Start it with `docker compose up -d`, then open <http://localhost:8080>.
 
-The volume `cliparr-data` holds one file, `cliparr.db`, with all clips and login sessions. Back it up like any other database.
+The folder `cliparr-data`, next to `compose.yaml`, holds everything Cliparr stores: the database `cliparr.db` with all clips and login sessions, and the preview pictures. It belongs to you, so you can copy it like any other folder; stop Cliparr first (`docker compose stop`) so that the copy is consistent. See [Data folder and permissions](configuration.md#data-folder-and-permissions) for how this works.
 
 For HTTPS and a proper domain name, continue with [Reverse proxy and HTTPS](reverse-proxy.md).
 

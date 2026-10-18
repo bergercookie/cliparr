@@ -13,30 +13,31 @@ services:
     # until you choose to upgrade, or "nightly" for the development build.
     image: ghcr.io/bergercookie/cliparr:latest
     restart: unless-stopped
-    # The container runs as user 65532, whatever user starts Compose. Change it only
-    # together with the data folder below; see "Data folder and permissions" in the
-    # Configuration page of the documentation.
-    # user: "1000:1000" # your own `id -u` and `id -g`
+    # Prefer never to start as root? Delete PUID and PGID below, uncomment this line
+    # with your own `id -u` and `id -g`, and create ./cliparr-data yourself first
+    # (mkdir cliparr-data). Cliparr then runs as that user from the very first
+    # instruction. See "Data folder and permissions" in the documentation.
+    # user: "1000:1000"
     ports:
       # Host port first. To reach Cliparr only from the server itself (for
       # example when a reverse proxy runs next to it), use "127.0.0.1:8080:8080".
       - "8080:8080"
     environment:
       # CHANGE ME: Jellyfin as seen from inside this container. Use the server's
-      # LAN address or, if Jellyfin runs in this same file, its service name
-      # (http://jellyfin:8096). "localhost" does not work here.
+      # LAN address or, if Jellyfin runs in another Compose file, its address on
+      # the shared network. "localhost" does not work here.
       CLIPARR_JELLYFIN_URL: http://192.168.1.10:8096
+
+      # CHANGE ME: the user and group that own everything Cliparr stores, so you
+      # can back it up without sudo. Use the output of `id -u` and `id -g`.
+      PUID: "1000"
+      PGID: "1000"
 
       # Optional: Jellyfin as you type it in your browser. Needed for the
       # "Open in Jellyfin web" button when the address above is an internal one.
       # CLIPARR_JELLYFIN_PUBLIC_URL: https://jellyfin.example.com
     volumes:
-      # Clips, login sessions and preview pictures. Back this up.
-      # A Docker volume, as here, works as it is. For a folder of your own
-      # ("./cliparr-data:/data"), create it first, then either give it to the
-      # container's user (sudo chown 65532:65532 cliparr-data) or run the
-      # container as you with user: above.
-      - cliparr-data:/data
-
-volumes:
-  cliparr-data:
+      # Clips, login sessions and preview pictures, in a folder next to this file.
+      # Docker creates it if it is missing; Cliparr hands it to PUID:PGID.
+      # Back this folder up (stop Cliparr first for a consistent copy).
+      - ./cliparr-data:/data

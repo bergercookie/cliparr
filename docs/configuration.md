@@ -10,30 +10,45 @@ Cliparr is configured with environment variables. Only one is required.
 | `CLIPARR_JELLYFIN_PUBLIC_URL` | same as `CLIPARR_JELLYFIN_URL` | Address of Jellyfin as you type it in your browser, e.g. `https://jellyfin.example.com`. Used for "Open in Jellyfin web" links. Set it when `CLIPARR_JELLYFIN_URL` is an internal name like `http://jellyfin:8096`. Cliparr warns at startup when you have not set it and the Jellyfin address looks like one that only the server can use (`localhost` or a name without dots). |
 | `CLIPARR_LISTEN`       | `:8080`  | Address and port Cliparr listens on inside the container.                                    |
 | `CLIPARR_DATA_DIR`     | `/data` in the image | Directory for the database and the preview pictures. Mount a volume here.        |
+| `PUID` | `65532` | The user number that owns the data folder and runs Cliparr. Use the output of `id -u`. Cannot be 0. See [Data folder and permissions](#data-folder-and-permissions). |
+| `PGID` | same as `PUID` | The group number, from `id -g`. |
 | `CLIPARR_FFMPEG`       | `ffmpeg` | Program that makes the preview pictures. The Docker image includes it. Set to `off` to show movie posters instead. |
 
 The preview pictures are small JPEG files in the `thumbnails` folder of the data directory. They can be deleted at any time; Cliparr makes them again when needed. If you run the plain binary instead of the Docker image, install `ffmpeg` so previews work.
 
 ## Data folder and permissions
 
-Cliparr keeps its database and the preview pictures in `/data` inside the container. The container does not run as root: it runs as user `65532`, and that is the user who has to be allowed to write there. It does not matter which user starts `docker compose up`.
+Cliparr keeps its database and the preview pictures in `/data` inside the container. You want those files to belong to you, not to some account inside the container, so that you can copy and back them up without `sudo`.
 
-- **A Docker volume** (`cliparr-data:/data`, as in the example) works as it is: Docker gives a new volume the owner of the image's `/data` folder.
-- **A folder of your own** (`./cliparr-data:/data`) belongs to you, not to user 65532, so Cliparr cannot write to it, and neither can it if Docker had to create the folder itself, which it does as root. Create the folder first, then do one of these:
-  - give it to the container's user: `sudo chown 65532:65532 cliparr-data`; or
-  - run the container as yourself: add `user: "1000:1000"` to the `cliparr` service, with your own numbers from `id -u` and `id -g`.
+Set `PUID` and `PGID` to your own user and group, from `id -u` and `id -g`, and mount a folder of yours as `/data`:
 
 ```yaml
-services:
-  cliparr:
-    user: "1000:1000"
+    environment:
+      PUID: "1000"
+      PGID: "1000"
     volumes:
       - ./cliparr-data:/data
 ```
 
-Do not combine `user:` with a Docker volume that was created without it: the volume belongs to 65532, so the new user cannot write to it. Use a folder you own, or remove the line.
+The container starts as root for a moment. Before it opens the database or a single connection, Cliparr gives `/data` and everything in it to `PUID:PGID`, and then gives up root for good: from then on it runs as that user, which you can see in the `cliparr started` log line (`uid=1000 gid=1000`). It does not matter whether Docker created the folder (it does so as root when the folder is missing) or an earlier run left files owned by someone else: Cliparr fixes it at every start, and changing `PUID` later works the same way. It never follows a link out of the data folder, so a link inside it cannot make it change a file elsewhere.
 
-If it is wrong, Cliparr stops at startup and the log says `the data folder /data is not writable by this process (uid …, gid …)`. Version 0.1.0 shows `unable to open database file (14)` instead, for the same reason.
+- **Only a folder of your own helps with backups.** A named Docker volume (`cliparr-data:/data` with a `volumes:` entry) works too, but it lives under `/var/lib/docker`, which only root can read, whoever owns the files.
+- **Back up with Cliparr stopped.** The database is a live SQLite file with side files. Run `docker compose stop`, copy the folder, then `docker compose start`.
+- **Without `PUID` and `PGID`** the files belong to user and group `65532`, the account the image has always used.
+
+### Never root at all: `user:`
+
+Handing the folder over needs root and three Linux capabilities (`CHOWN`, `SETUID`, `SETGID`). If you would rather never start as root, or you drop all capabilities (`cap_drop: [ALL]`), or the folder is on a file system that refuses `chown` (NFS with root squash, for instance), set `user:` yourself and make the folder yours first. `PUID` and `PGID` are then ignored.
+
+```yaml
+services:
+  cliparr:
+    user: "1000:1000" # `id -u` and `id -g`
+    volumes:
+      - ./cliparr-data:/data # create it first: mkdir cliparr-data
+```
+
+Docker creates a missing folder as root, and then Cliparr, running as you, cannot write to it. It stops at startup and the log says `the data folder /data is not writable by this process (uid …, gid …)`. Version 0.1.0 shows `unable to open database file (14)` for the same reason, and does not have `PUID` and `PGID`.
 
 ## Single sign-on settings
 

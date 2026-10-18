@@ -12,7 +12,8 @@ Every request is logged with its status code. Messages starting with `level=WARN
 
 | What you see | Likely cause and fix |
 | --- | --- |
-| The container keeps restarting; the log says `the data folder … is not writable` (or `unable to open database file (14)`) | The user inside the container is not allowed to write to the data folder. See [Data folder and permissions](configuration.md#data-folder-and-permissions): use the Docker volume from the example, or create your own folder and add `user: "1000:1000"` (your `id -u` and `id -g`) to the service. |
+| The container keeps restarting; the log says `the data folder … is not writable` (or, in 0.1.0, `unable to open database file (14)`) | The user inside the container is not allowed to write to the data folder. Set `PUID` and `PGID` to your own user and group (`id -u`, `id -g`) and Cliparr takes care of the folder. If you set `user:` yourself, the folder must belong to that user. See [Data folder and permissions](configuration.md#data-folder-and-permissions). |
+| The log says `PUID is 0, which is root` | Cliparr does not run as root. Use your own numbers from `id -u` and `id -g`, which are not 0. |
 | The logs say `cannot reach Jellyfin yet`, or login says "could not reach Jellyfin" | `CLIPARR_JELLYFIN_URL` is wrong or not reachable from the container. `localhost` does not work inside a container; use the service name or the host's LAN address. Test with the [debug container](#debug-container). |
 | Login says "invalid Jellyfin username or password" | Try the same credentials in Jellyfin itself. Users who sign in through an SSO plugin have no password; see [Single sign-on](sso.md). |
 | You are logged out again right after logging in, behind a proxy | The proxy must forward `X-Forwarded-Proto` (Caddy does by default). Check that you open the HTTPS address, not plain HTTP. |

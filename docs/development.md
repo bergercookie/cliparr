@@ -41,6 +41,7 @@ Devbox's Flutter can be a patch release behind the version in `.flutter-version`
 | `just ci` | Everything CI runs |
 | `just docs-serve` | Builds these docs and serves them on <http://localhost:8000> |
 | `just docker-build` | Builds the Docker images locally |
+| `just docker-test` | Checks with the built image who owns the files in the data folder (needs `just docker-build` first) |
 
 To work on the interface with the fake Jellyfin: run `just dev`, build the web app once with `just build-web`, and restart. The web build must be served by the Cliparr server itself, because login uses a same-origin cookie.
 
