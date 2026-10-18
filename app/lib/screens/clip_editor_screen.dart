@@ -33,6 +33,9 @@ class _ClipEditorScreenState extends State<ClipEditorScreen> {
   String? _error;
   bool _saving = false;
 
+  /// True between pressing the clip button for the start and for the end.
+  bool _startedClip = false;
+
   Clip? get _existing => widget.clip;
 
   @override
@@ -78,6 +81,36 @@ class _ClipEditorScreenState extends State<ClipEditorScreen> {
   void _markHere(TextEditingController field) {
     final player = _player.currentState;
     if (player != null) field.text = formatMs(player.positionMs);
+  }
+
+  /// The button on the video: the first press marks the start of a clip, the
+  /// next one its end.
+  void _toggleClip() {
+    // Hand the keyboard back to the player, so space keeps pausing.
+    FocusManager.instance.primaryFocus?.unfocus();
+    final player = _player.currentState;
+    if (player == null) return;
+    if (!_startedClip) {
+      setState(() {
+        _start.text = formatMs(player.positionMs);
+        _end.clear();
+        _startedClip = true;
+        _error = null;
+      });
+      return;
+    }
+    final start = parseTimestamp(_start.text);
+    if (start != null && player.positionMs <= start) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('The end must be after the start.')),
+      );
+      return;
+    }
+    setState(() {
+      _end.text = formatMs(player.positionMs);
+      _startedClip = false;
+      _error = null;
+    });
   }
 
   /// Returns the typed range, or null after setting an error message.
@@ -172,6 +205,11 @@ class _ClipEditorScreenState extends State<ClipEditorScreen> {
       itemId: _itemId!,
       startMs: _existing?.startMs,
       endMs: _existing?.endMs,
+      overlay: FilledButton.icon(
+        onPressed: _toggleClip,
+        icon: Icon(_startedClip ? Icons.stop : Icons.content_cut),
+        label: Text(_startedClip ? 'End clip' : 'Start clip'),
+      ),
     ),
     const SizedBox(height: 12),
     Row(

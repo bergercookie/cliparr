@@ -17,6 +17,7 @@ class ClipPlayer extends StatefulWidget {
     this.endMs,
     this.autoplay = true,
     this.restrictToRange = false,
+    this.overlay,
   });
 
   final ApiClient api;
@@ -34,6 +35,9 @@ class ClipPlayer extends StatefulWidget {
   /// Only allow seeking between [startMs] and [endMs], and show times within
   /// the clip. For viewing a clip; the editor needs the whole video.
   final bool restrictToRange;
+
+  /// Controls shown on top of the video, in its top right corner.
+  final Widget? overlay;
 
   @override
   State<ClipPlayer> createState() => ClipPlayerState();
@@ -194,10 +198,18 @@ class ClipPlayerState extends State<ClipPlayer> {
           ),
           child: AspectRatio(
             aspectRatio: value.aspectRatio,
-            child: _ClickToToggle(
-              playing: value.isPlaying,
-              onToggle: _toggle,
-              child: VideoPlayer(_controller),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: _ClickToToggle(
+                    playing: value.isPlaying,
+                    onToggle: _toggle,
+                    child: VideoPlayer(_controller),
+                  ),
+                ),
+                if (widget.overlay != null)
+                  Positioned(top: 8, right: 8, child: widget.overlay!),
+              ],
             ),
           ),
         ),
