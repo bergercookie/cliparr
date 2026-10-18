@@ -11,3 +11,5 @@ exclude_patterns = ["_build", "requirements.txt"]
 
 html_theme = "furo"
 html_title = "Cliparr"
+html_logo = "../packaging/cliparr.svg"
+html_favicon = "../app/web/favicon.png"

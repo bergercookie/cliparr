@@ -203,6 +203,13 @@ docs-serve: docs
 screenshots: build-web
     scripts/screenshots.sh
 
+# Render the logo (packaging/cliparr.svg) into every PNG icon: web app, Android and browser extension. Run when the logo changes.
+[group('build')]
+icons:
+    #!/usr/bin/env bash
+    source scripts/browser-env.sh
+    "$(browser_python)" scripts/make-icons.py
+
 # --- release (used by the GitHub workflows) -------------------------------------
 
 # Exit successfully only if there are new commits since the last nightly.

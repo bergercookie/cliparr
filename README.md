@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="packaging/cliparr.svg" width="128" alt="Cliparr logo: scissors cutting a film strip">
+</p>
+
 # Cliparr
 
 [![CI](https://github.com/bergercookie/cliparr/actions/workflows/ci.yml/badge.svg)](https://github.com/bergercookie/cliparr/actions/workflows/ci.yml)

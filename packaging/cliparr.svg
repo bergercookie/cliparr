@@ -1,5 +1,113 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-  <rect width="256" height="256" rx="56" fill="#5b3fd1"/>
-  <path d="M96 72v112l92-56z" fill="#fff"/>
-  <path d="M60 96v-36h36M196 160v36h-36" fill="none" stroke="#fff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <title>Cliparr</title>
+  <!-- Scissors cutting a film strip. scripts/make-icons.py renders this file into
+       every PNG icon, so keep the artwork inside <g id="art">. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7a5af8"/>
+      <stop offset="1" stop-color="#4527b8"/>
+    </linearGradient>
+    <clipPath id="tile"><rect width="256" height="256" rx="56"/></clipPath>
+    <!-- The film's sprocket holes, cut out of the white strip. -->
+    <mask id="holes-left" maskUnits="userSpaceOnUse" x="-320" y="50" width="500" height="100">
+      <rect x="-320" y="50" width="500" height="100" fill="#fff"/>
+      <g fill="#000">
+        <rect x="-314" y="66" width="13" height="13" rx="3.5"/>
+        <rect x="-314" y="121" width="13" height="13" rx="3.5"/>
+        <rect x="-284" y="66" width="13" height="13" rx="3.5"/>
+        <rect x="-284" y="121" width="13" height="13" rx="3.5"/>
+        <rect x="-254" y="66" width="13" height="13" rx="3.5"/>
+        <rect x="-254" y="121" width="13" height="13" rx="3.5"/>
+        <rect x="-224" y="66" width="13" height="13" rx="3.5"/>
+        <rect x="-224" y="121" width="13" height="13" rx="3.5"/>
+        <rect x="-194" y="66" width="13" height="13" rx="3.5"/>
+        <rect x="-194" y="121" width="13" height="13" rx="3.5"/>
+        <rect x="-164" y="66" width="13" height="13" rx="3.5"/>
+        <rect x="-164" y="121" width="13" height="13" rx="3.5"/>
+        <rect x="-134" y="66" width="13" height="13" rx="3.5"/>
+        <rect x="-134" y="121" width="13" height="13" rx="3.5"/>
+        <rect x="-104" y="66" width="13" height="13" rx="3.5"/>
+        <rect x="-104" y="121" width="13" height="13" rx="3.5"/>
+        <rect x="-74" y="66" width="13" height="13" rx="3.5"/>
+        <rect x="-74" y="121" width="13" height="13" rx="3.5"/>
+        <rect x="-44" y="66" width="13" height="13" rx="3.5"/>
+        <rect x="-44" y="121" width="13" height="13" rx="3.5"/>
+        <rect x="-14" y="66" width="13" height="13" rx="3.5"/>
+        <rect x="-14" y="121" width="13" height="13" rx="3.5"/>
+        <rect x="16" y="66" width="13" height="13" rx="3.5"/>
+        <rect x="16" y="121" width="13" height="13" rx="3.5"/>
+        <rect x="46" y="66" width="13" height="13" rx="3.5"/>
+        <rect x="46" y="121" width="13" height="13" rx="3.5"/>
+        <rect x="76" y="66" width="13" height="13" rx="3.5"/>
+        <rect x="76" y="121" width="13" height="13" rx="3.5"/>
+        <rect x="106" y="66" width="13" height="13" rx="3.5"/>
+        <rect x="106" y="121" width="13" height="13" rx="3.5"/>
+        <rect x="136" y="66" width="13" height="13" rx="3.5"/>
+        <rect x="136" y="121" width="13" height="13" rx="3.5"/>
+        <rect x="166" y="66" width="13" height="13" rx="3.5"/>
+        <rect x="166" y="121" width="13" height="13" rx="3.5"/>
+      </g>
+    </mask>
+    <mask id="holes-right" maskUnits="userSpaceOnUse" x="170" y="50" width="420" height="100">
+      <rect x="170" y="50" width="420" height="100" fill="#fff"/>
+      <g fill="#000">
+        <rect x="196" y="66" width="13" height="13" rx="3.5"/>
+        <rect x="196" y="121" width="13" height="13" rx="3.5"/>
+        <rect x="226" y="66" width="13" height="13" rx="3.5"/>
+        <rect x="226" y="121" width="13" height="13" rx="3.5"/>
+        <rect x="256" y="66" width="13" height="13" rx="3.5"/>
+        <rect x="256" y="121" width="13" height="13" rx="3.5"/>
+        <rect x="286" y="66" width="13" height="13" rx="3.5"/>
+        <rect x="286" y="121" width="13" height="13" rx="3.5"/>
+        <rect x="316" y="66" width="13" height="13" rx="3.5"/>
+        <rect x="316" y="121" width="13" height="13" rx="3.5"/>
+        <rect x="346" y="66" width="13" height="13" rx="3.5"/>
+        <rect x="346" y="121" width="13" height="13" rx="3.5"/>
+        <rect x="376" y="66" width="13" height="13" rx="3.5"/>
+        <rect x="376" y="121" width="13" height="13" rx="3.5"/>
+        <rect x="406" y="66" width="13" height="13" rx="3.5"/>
+        <rect x="406" y="121" width="13" height="13" rx="3.5"/>
+        <rect x="436" y="66" width="13" height="13" rx="3.5"/>
+        <rect x="436" y="121" width="13" height="13" rx="3.5"/>
+        <rect x="466" y="66" width="13" height="13" rx="3.5"/>
+        <rect x="466" y="121" width="13" height="13" rx="3.5"/>
+        <rect x="496" y="66" width="13" height="13" rx="3.5"/>
+        <rect x="496" y="121" width="13" height="13" rx="3.5"/>
+        <rect x="526" y="66" width="13" height="13" rx="3.5"/>
+        <rect x="526" y="121" width="13" height="13" rx="3.5"/>
+        <rect x="556" y="66" width="13" height="13" rx="3.5"/>
+        <rect x="556" y="121" width="13" height="13" rx="3.5"/>
+      </g>
+    </mask>
+    <g id="blade">
+      <path d="M-8 12h16l-1-18L0-90l-7 84z"/>
+      <path d="M0 8v44" stroke-width="11" stroke-linecap="round" fill="none"/>
+      <circle cx="0" cy="65" r="14" fill="none" stroke-width="11"/>
+    </g>
+  </defs>
+
+  <rect id="tile-bg" width="256" height="256" rx="56" fill="url(#bg)"/>
+  <g clip-path="url(#tile)">
+    <g id="art">
+      <!-- The film: the left part carries the play button, the right part falls away. -->
+      <g mask="url(#holes-left)"><rect x="-320" y="58" width="490" height="84" fill="#fff"/></g>
+      <g transform="rotate(7 188 62)">
+        <g mask="url(#holes-right)"><rect x="186" y="58" width="400" height="84" fill="#fff"/></g>
+      </g>
+      <path d="M72 81v38l38-19z" fill="#5b3fd1"/>
+
+      <!-- The scissors, outlined first so the two blades merge at the pivot. -->
+      <g transform="translate(176 158)">
+        <g fill="#2b1670" stroke="#2b1670" stroke-width="9" stroke-linejoin="round">
+          <use href="#blade" transform="rotate(-18)"/>
+          <use href="#blade" transform="rotate(18)"/>
+        </g>
+        <g fill="#ffc233" stroke="#ffc233" stroke-width="2" stroke-linejoin="round">
+          <use href="#blade" transform="rotate(-18)"/>
+          <use href="#blade" transform="rotate(18)"/>
+        </g>
+        <circle r="8.5" fill="#2b1670" stroke="#ffc233" stroke-width="4"/>
+      </g>
+    </g>
+  </g>
 </svg>

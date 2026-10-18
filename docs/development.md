@@ -58,6 +58,10 @@ Add a test with every behaviour change. See `AGENTS.md` for the conventions.
 
 `just screenshots` rebuilds the web app, starts the server against the fake Jellyfin (which streams a generated one-minute test video, so it needs `ffmpeg`) with a few sample clips, and photographs the main screens in a headless Chromium into `docs/screenshots/` (light, dark and phone-sized). It uses Playwright, which downloads a Chromium on first run; set `CHROMIUM=/path/to/chromium` to use one you already have. Re-run it after UI changes and commit the new images. The sample quotes are invented on purpose, so the images do not attribute real lines to real films.
 
+## Logo
+
+The logo is `packaging/cliparr.svg`: scissors cutting a film strip. It is the only source. The Linux packages use it as it is. The PNG icons of the web app, the Android launcher and the browser extension are rendered from it, because their manifests do not accept SVG. After changing the logo, run `just icons` (it uses Playwright like `just screenshots`, so `CHROMIUM=/path/to/chromium` works here too) and commit the PNGs it writes.
+
 ## Browser extension
 
 The code lives in `extension/` and is loaded as it is; `just package-extension <version>` makes the Chrome and Firefox zips (they differ only in the generated manifest). To try it by hand in Chrome, run `scripts/build-extension.sh`, then load `build/extension/chrome` as an unpacked extension. `SCREENSHOT_DIR=docs/screenshots just e2e-extension` refreshes the picture used in the docs.
