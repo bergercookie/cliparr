@@ -1,0 +1,50 @@
+# Cliparr: example Docker Compose file for a homelab.
+#
+# 1. Copy this file to compose.yaml on your server.
+# 2. Change the lines marked "CHANGE ME".
+# 3. Run: docker compose up -d
+# 4. Open http://<server address>:8080 and log in with your Jellyfin account.
+#
+# More help: https://bergercookie.github.io/cliparr/getting-started.html
+
+services:
+  cliparr:
+    # "latest" is the newest release. Use a version such as "0.2.0" to stay put
+    # until you choose to upgrade, or "nightly" for the development build.
+    image: ghcr.io/bergercookie/cliparr:latest
+    restart: unless-stopped
+    ports:
+      # Host port first. To reach Cliparr only from the server itself (for
+      # example when a reverse proxy runs next to it), use "127.0.0.1:8080:8080".
+      - "8080:8080"
+    environment:
+      # CHANGE ME: Jellyfin as seen from inside this container. Use the server's
+      # LAN address or, if Jellyfin runs in this same file, its service name
+      # (http://jellyfin:8096). "localhost" does not work here.
+      CLIPARR_JELLYFIN_URL: http://192.168.1.10:8096
+
+      # Optional: Jellyfin as you type it in your browser. Needed for the
+      # "Open in Jellyfin web" button when the address above is an internal one.
+      # CLIPARR_JELLYFIN_PUBLIC_URL: https://jellyfin.example.com
+    volumes:
+      # Clips, login sessions and preview pictures. Back this volume up.
+      # To keep the data in a normal folder instead, use "./cliparr-data:/data"
+      # and run "sudo chown 65532:65532 cliparr-data" once: the container does
+      # not run as root.
+      - cliparr-data:/data
+
+  # Optional: run Jellyfin in this same file. Skip this if you already have one.
+  # jellyfin:
+  #   image: jellyfin/jellyfin:latest
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8096:8096"
+  #   volumes:
+  #     - jellyfin-config:/config
+  #     - jellyfin-cache:/cache
+  #     - /path/to/your/media:/media:ro # CHANGE ME
+
+volumes:
+  cliparr-data:
+  # jellyfin-config:
+  # jellyfin-cache:

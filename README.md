@@ -47,6 +47,8 @@ volumes:
 docker compose up -d
 ```
 
+A commented version with the optional settings is in [`compose.example.yaml`](compose.example.yaml).
+
 Open <http://localhost:8080> and log in with your Jellyfin username and password.
 
 ## Documentation

@@ -8,7 +8,13 @@
 
 ## Install
 
-Create a `compose.yaml`:
+Download the commented example and save it as `compose.yaml` on your server:
+
+```sh
+curl -fsSL -o compose.yaml https://raw.githubusercontent.com/bergercookie/cliparr/master/compose.example.yaml
+```
+
+Or create `compose.yaml` yourself with the same minimum:
 
 ```yaml
 services:
