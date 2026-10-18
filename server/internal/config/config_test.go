@@ -2,6 +2,7 @@ package config
 
 import (
 	"net/netip"
+	"strings"
 	"testing"
 )
 
@@ -89,5 +90,34 @@ func TestProxyAuthRequiresAllSettings(t *testing.T) {
 		if _, err := FromEnv(env(m)); err == nil {
 			t.Errorf("%s: expected an error", name)
 		}
+	}
+}
+
+func TestPublicURLAdvice(t *testing.T) {
+	tests := []struct {
+		name, jellyfin, public string
+		wantAdvice             bool
+	}{
+		{"a Compose service name", "http://jellyfin:8096", "", true},
+		{"localhost", "http://localhost:8096", "", true},
+		{"a loopback address", "http://127.0.0.1:8096", "", true},
+		{"a LAN address works at home", "http://192.168.1.10:8096", "", false},
+		{"a domain name", "https://jellyfin.example.com", "", false},
+		{"the public address is set", "http://jellyfin:8096", "https://jellyfin.example.com", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg, err := FromEnv(env(map[string]string{"CLIPARR_JELLYFIN_URL": tt.jellyfin, "CLIPARR_JELLYFIN_PUBLIC_URL": tt.public}))
+			if err != nil {
+				t.Fatal(err)
+			}
+			advice := cfg.PublicURLAdvice()
+			if (advice != "") != tt.wantAdvice {
+				t.Errorf("advice = %q, want advice: %v", advice, tt.wantAdvice)
+			}
+			if tt.wantAdvice && !strings.Contains(advice, "CLIPARR_JELLYFIN_PUBLIC_URL") {
+				t.Errorf("the advice should name the setting: %q", advice)
+			}
+		})
 	}
 }

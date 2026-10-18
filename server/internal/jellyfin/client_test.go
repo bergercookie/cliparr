@@ -21,6 +21,18 @@ func newClient(t *testing.T) *jellyfin.Client {
 	return c
 }
 
+func TestInfoTellsWhoJellyfinIs(t *testing.T) {
+	c := newClient(t)
+
+	info, err := c.Info(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.ID != fakejellyfin.ServerID || info.Name != "Fake Jellyfin" || info.Version != "10.11.0-fake" {
+		t.Errorf("unexpected info: %+v", info)
+	}
+}
+
 func TestAuthenticate(t *testing.T) {
 	c := newClient(t)
 

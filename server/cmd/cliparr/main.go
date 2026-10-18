@@ -121,6 +121,10 @@ func run(log *slog.Logger) error {
 
 	log.Info("cliparr started", "version", version, "listen", cfg.Listen, "jellyfin", cfg.JellyfinURL,
 		"proxyAuth", cfg.ProxyAuth.Enabled())
+	if advice := cfg.PublicURLAdvice(); advice != "" {
+		log.Warn(advice)
+	}
+	go watchJellyfin(ctx, log, jf, cfg.JellyfinURL, 10*time.Second)
 	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}

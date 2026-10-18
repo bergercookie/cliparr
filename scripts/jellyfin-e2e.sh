@@ -91,7 +91,8 @@ curl -fs -o /dev/null "$jellyfin_url/System/Info/Public" || {
   tail -n 30 "$work/jellyfin.log" >&2
   exit 1
 }
-echo "Jellyfin $(curl -fs "$jellyfin_url/System/Info/Public" | jq -r .version) is running on port $jellyfin_port"
+jellyfin_version="$(curl -fs "$jellyfin_url/System/Info/Public" | jq -r .version)"
+echo "Jellyfin $jellyfin_version is running on port $jellyfin_port"
 
 # shellcheck source=browser-env.sh
 source "$root/scripts/browser-env.sh"
@@ -113,6 +114,19 @@ for _ in $(seq 100); do
   curl -fs -o /dev/null "$cliparr_url/healthz" && break
   sleep 0.1
 done
+
+# On startup Cliparr checks Jellyfin and logs its version.
+for _ in $(seq 100); do
+  grep -q 'msg="jellyfin reachable"' "$work/cliparr.log" && break
+  sleep 0.1
+done
+if grep 'msg="jellyfin reachable"' "$work/cliparr.log" | grep -qF "version=$jellyfin_version"; then
+  echo "Cliparr's log says Jellyfin $jellyfin_version is reachable"
+else
+  echo "Cliparr's log does not report Jellyfin $jellyfin_version as reachable:" >&2
+  cat "$work/cliparr.log" >&2
+  exit 1
+fi
 
 status=0
 for check in server_checks web_checks; do

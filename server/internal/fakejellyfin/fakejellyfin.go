@@ -144,7 +144,7 @@ func (s *Server) ResumeTicks(user, itemID string) int64 {
 }
 
 func (s *Server) systemInfo(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, map[string]string{"Id": ServerID, "ServerName": "Fake Jellyfin"})
+	writeJSON(w, map[string]string{"Id": ServerID, "ServerName": "Fake Jellyfin", "Version": "10.11.0-fake"})
 }
 
 func (s *Server) authenticate(w http.ResponseWriter, r *http.Request) {

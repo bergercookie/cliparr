@@ -77,6 +77,38 @@ func FromEnv(getenv func(string) string) (Config, error) {
 	return cfg, nil
 }
 
+// PublicURLAdvice returns a hint for the log when the links that open Jellyfin
+// probably do not work, or "" when there is nothing to say. Cliparr reaches
+// Jellyfin by an address that can be private to the server (a Compose service
+// name such as "jellyfin"), and without CLIPARR_JELLYFIN_PUBLIC_URL it would
+// hand that same address to people's browsers.
+func (c Config) PublicURLAdvice() string {
+	if c.JellyfinPublicURL != c.JellyfinURL || !looksInternal(c.JellyfinURL) {
+		return ""
+	}
+	return fmt.Sprintf("\"Open in Jellyfin web\" links will use %s, the address Cliparr itself uses, "+
+		"which browsers probably cannot open. Set CLIPARR_JELLYFIN_PUBLIC_URL to the address you type "+
+		"in a browser to open Jellyfin, for example https://jellyfin.example.com", c.JellyfinURL)
+}
+
+// looksInternal reports whether a browser on another machine could not use the address:
+// localhost, or a single-word name, which is what a Compose service is called.
+// A LAN address such as 192.168.1.10 is fine at home, so it does not count.
+func looksInternal(raw string) bool {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return false
+	}
+	host := u.Hostname()
+	if host == "localhost" || host == "host.docker.internal" {
+		return true
+	}
+	if addr, err := netip.ParseAddr(host); err == nil {
+		return addr.IsLoopback()
+	}
+	return !strings.Contains(host, ".")
+}
+
 func checkHTTPURL(name, value string) error {
 	u, err := url.Parse(value)
 	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {

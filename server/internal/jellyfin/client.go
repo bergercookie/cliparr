@@ -197,14 +197,27 @@ func (c *Client) items(ctx context.Context, token string, q url.Values) ([]Item,
 	return items, nil
 }
 
-// ServerID returns the unique id of the Jellyfin server. Jellyfin's web
-// client needs it in links. The endpoint is public, so no login is required.
-func (c *Client) ServerID(ctx context.Context) (string, error) {
-	var info struct{ Id string }
-	if err := c.do(ctx, http.MethodGet, "/System/Info/Public", "", nil, nil, &info); err != nil {
-		return "", err
+// Info is what a Jellyfin server tells anyone who asks, logged in or not.
+type Info struct {
+	ID      string
+	Name    string
+	Version string
+}
+
+// Info asks Jellyfin who it is. The endpoint is public, so no login is required.
+func (c *Client) Info(ctx context.Context) (Info, error) {
+	var resp struct{ Id, ServerName, Version string }
+	if err := c.do(ctx, http.MethodGet, "/System/Info/Public", "", nil, nil, &resp); err != nil {
+		return Info{}, err
 	}
-	return info.Id, nil
+	return Info{ID: resp.Id, Name: resp.ServerName, Version: resp.Version}, nil
+}
+
+// ServerID returns the unique id of the Jellyfin server. Jellyfin's web
+// client needs it in links.
+func (c *Client) ServerID(ctx context.Context) (string, error) {
+	info, err := c.Info(ctx)
+	return info.ID, err
 }
 
 // Devices lists the running Jellyfin clients (TVs, phones, browser tabs) that
