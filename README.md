@@ -75,4 +75,4 @@ The same pages are published at <https://bergercookie.github.io/cliparr/>.
 
 ## Status
 
-Cliparr is young. The browser extension is checked against a stand-in for Jellyfin's web player; real-world reports are welcome.
+Cliparr is young. Every change is tested in CI against real Jellyfin servers (10.11 and the newest release): logging in, searching, playing, preview pictures, both "Open in Jellyfin" buttons and the browser extension in Chrome. Not covered yet: the Firefox extension (it is only linted), Jellyfin's TV and phone apps as targets of "Play on a device" (only its web client is tested), and browsers that play H.264 themselves (the test browser makes Jellyfin convert the video). Real-world reports are welcome.

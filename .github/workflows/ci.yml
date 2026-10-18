@@ -84,6 +84,26 @@ jobs:
       - run: just lint-extension
       - run: just e2e-extension
 
+  # The real thing: downloads a Jellyfin release and drives its web client in a
+  # browser. Covers the oldest release repo.jellyfin.org still offers and the newest.
+  # Plain runner, like `extension`, for the same reason.
+  e2e-jellyfin:
+    name: e2e-jellyfin (${{ matrix.jellyfin }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        jellyfin: ["10.11.11", "latest-stable"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: server/go.mod
+      - uses: extractions/setup-just@v4
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+      - run: just e2e-jellyfin ${{ matrix.jellyfin }}
+
   docs:
     runs-on: ubuntu-latest
     steps:

@@ -180,13 +180,18 @@ coverage:
 e2e-extension:
     scripts/extension-e2e.sh
 
+# End-to-end test against a real Jellyfin server downloaded from repo.jellyfin.org. VERSION: 10.11.11, 12.2 or latest-stable (needs ffmpeg).
+[group('check')]
+e2e-jellyfin version="latest-stable":
+    scripts/jellyfin-e2e.sh {{ version }}
+
 # Lint and unit tests: run this before every commit.
 [group('check')]
 check: lint test
 
 # Everything CI runs, except the Android upgrade test (it needs an emulator; see `just upgrade-test`).
 [group('check')]
-ci: check vuln e2e e2e-extension docs
+ci: check vuln e2e e2e-extension e2e-jellyfin docs
 
 # --- documentation -------------------------------------------------------------
 

@@ -23,3 +23,6 @@
 
 # devbox working files
 /.devbox/
+
+# Python bytecode (the end-to-end scripts import a shared module)
+__pycache__/

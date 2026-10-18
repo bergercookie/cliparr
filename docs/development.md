@@ -71,8 +71,21 @@ Three checks cover the extension:
 - `just lint-extension` runs ESLint on the scripts (undefined or unused names, `==`, `eval` and similar) and then Firefox's `web-ext` linter on the generated manifest. The settings are in `extension/eslint.config.cjs`. Nothing needs installing: `npx` fetches a pinned ESLint, so the extension itself keeps zero npm dependencies.
 - `just test-extension` runs the unit tests, including ones that fail if the manifest asks for more access than the extension promises (never `<all_urls>`, only the permissions it uses today).
 - `just e2e-extension` loads the built extension into a real Chromium and bookmarks a clip in a stand-in for Jellyfin's player. It runs on Chrome only: Playwright cannot load extensions into Firefox, so Firefox relies on the shared code, the unit tests and the `web-ext` lint.
+- `just e2e-jellyfin` does the same on Jellyfin's own web player; see the next section.
 
 Chromium and Firefox parse some input differently (for example a space in a host name), so keep decisions like "is this a valid address" in `lib.js` with explicit rules and unit tests, not in the URL parser alone.
+
+## Tests against a real Jellyfin
+
+The fake Jellyfin in the other tests is quick, but it only knows what we taught it. `just e2e-jellyfin [VERSION]` checks Cliparr against the real thing. It downloads a Jellyfin release from `repo.jellyfin.org` (kept in `build/jellyfin/`), starts it with an empty database and a generated ten-minute movie, starts Cliparr, and runs three groups of checks from `e2e/jellyfin/`:
+
+- `server_checks.py`: login, search, streaming, preview pictures, who may see which clip, and the resume point.
+- `web_checks.py`: Jellyfin's web client in a browser. The "Open in Jellyfin web" link must lead to the movie and Play must continue at the clip start, and "Play on a device" must start the clip on the open web client.
+- `extension_checks.py`: the browser extension on Jellyfin's real player.
+
+`VERSION` is a release such as `10.11.11` or `12.2`, or `latest-stable` (the default). Only the releases `repo.jellyfin.org` still offers can be tested; today that is 10.11 and 12.x, and CI runs the oldest of them and the newest. It needs `ffmpeg`, `jq` and `zip` besides the usual tools, and takes a few minutes: the test browser cannot play H.264, so Jellyfin converts the video first, which is slow on a small machine. Set `JELLYFIN_E2E_KEEP=1` to keep the temporary folder with Jellyfin's data and log when something fails.
+
+The movie has no online metadata on purpose: the checks must not depend on what a metadata service thinks a file is.
 
 ## Android upgrade test
 

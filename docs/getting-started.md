@@ -2,7 +2,7 @@
 
 ## What you need
 
-- A running Jellyfin server that the Cliparr container can reach over the network. Cliparr targets Jellyfin 10.9 and newer.
+- A running Jellyfin server that the Cliparr container can reach over the network. Every change to Cliparr is tested against Jellyfin 10.11 and the newest release (12.x). Jellyfin 10.9 and 10.10 use the same interfaces and should work, but cannot be tested any more because Jellyfin no longer offers them for download.
 - Docker with Compose.
 - A Jellyfin account. Cliparr uses it to log you in; no extra accounts are created.
 

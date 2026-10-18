@@ -61,6 +61,7 @@ Everything goes through the `justfile`. Do not invent your own commands.
 - Keep it dependency-free: no bundler, no npm packages. Shared logic goes in `extension/lib.js` and needs a test.
 - It must ask for access to the user's own Jellyfin and Cliparr addresses only, never `<all_urls>`.
 - Run `just lint-extension`, `just test-extension` and `just e2e-extension` when you touch it.
+- Also run `just e2e-jellyfin` when you touch the extension or `server/internal/jellyfin/`: it checks them against a real Jellyfin, which the fake one cannot do. It needs ffmpeg and takes a few minutes.
 
 ## Versions and releases
 
