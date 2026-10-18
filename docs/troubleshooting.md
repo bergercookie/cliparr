@@ -12,12 +12,12 @@ Every request is logged with its status code. Messages starting with `level=WARN
 
 | What you see | Likely cause and fix |
 | --- | --- |
-| Login says "could not reach Jellyfin" | `CLIPARR_JELLYFIN_URL` is wrong or not reachable from the container. `localhost` does not work inside a container; use the service name or the host's LAN address. Test with the [debug container](#debug-container). |
+| The logs say `cannot reach Jellyfin yet`, or login says "could not reach Jellyfin" | `CLIPARR_JELLYFIN_URL` is wrong or not reachable from the container. `localhost` does not work inside a container; use the service name or the host's LAN address. Test with the [debug container](#debug-container). |
 | Login says "invalid Jellyfin username or password" | Try the same credentials in Jellyfin itself. Users who sign in through an SSO plugin have no password; see [Single sign-on](sso.md). |
 | You are logged out again right after logging in, behind a proxy | The proxy must forward `X-Forwarded-Proto` (Caddy does by default). Check that you open the HTTPS address, not plain HTTP. |
 | A clip shows "Could not play this video" | Browsers play only some formats. Try the Android or Linux app, or convert the file to H.264 and AAC in an MP4. |
 | Cards show a poster or a grey movie icon instead of a scene | The preview picture could not be made. Check that `ffmpeg` exists in the container (`docker compose exec cliparr ffmpeg -version`) and that the bookmark's time lies inside the video. The logs say `thumbnail failed` with the reason. |
-| "Open in Jellyfin web" opens the wrong address | Set `CLIPARR_JELLYFIN_PUBLIC_URL` to the address you use in your browser. |
+| "Open in Jellyfin web" opens the wrong address, or the logs warn about `CLIPARR_JELLYFIN_PUBLIC_URL` | Set `CLIPARR_JELLYFIN_PUBLIC_URL` to the address you use in your browser to open Jellyfin, for example `https://jellyfin.example.com`. |
 | "No Jellyfin app that Cliparr can control is running" | Open the Jellyfin app on your TV, phone or computer first, then use the refresh button in the sheet. Browser tabs with Jellyfin open count too. |
 | Clips are listed but the poster or video fails | The Jellyfin item was deleted or moved, or your Jellyfin user lost access to its library. |
 | SSO: "your SSO username does not match any Jellyfin user" | The username from Authelia must exist in Jellyfin (capitalisation is ignored). |

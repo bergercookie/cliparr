@@ -29,7 +29,7 @@ The add-on is removed when Firefox closes. Firefox Developer Edition and Nightly
 
 1. Click the Cliparr icon in the toolbar (or open the extension's options).
 2. Enter the **Jellyfin address** exactly as you open Jellyfin in this browser, for example `http://192.168.1.10:8096`.
-3. Enter the **Cliparr address**, for example `http://192.168.1.10:8080`.
+3. Enter the **Cliparr address**, for example `http://192.168.1.10:8080`. You can copy it from Cliparr's web interface: Settings, Other devices.
 4. Click **Save**. The browser asks for permission to use those two addresses. Allow it.
 5. Click **Test connection** to check that Cliparr answers.
 

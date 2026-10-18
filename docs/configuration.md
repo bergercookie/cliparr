@@ -7,7 +7,7 @@ Cliparr is configured with environment variables. Only one is required.
 | Variable               | Default  | Meaning                                                                                      |
 | ---------------------- | -------- | -------------------------------------------------------------------------------------------- |
 | `CLIPARR_JELLYFIN_URL` | required | Address of your Jellyfin server, e.g. `http://jellyfin:8096`. Must be reachable from Cliparr. |
-| `CLIPARR_JELLYFIN_PUBLIC_URL` | same as `CLIPARR_JELLYFIN_URL` | Address of Jellyfin as you type it in your browser, e.g. `https://jellyfin.example.com`. Used for "Open in Jellyfin web" links. Set it when `CLIPARR_JELLYFIN_URL` is an internal name like `http://jellyfin:8096`. |
+| `CLIPARR_JELLYFIN_PUBLIC_URL` | same as `CLIPARR_JELLYFIN_URL` | Address of Jellyfin as you type it in your browser, e.g. `https://jellyfin.example.com`. Used for "Open in Jellyfin web" links. Set it when `CLIPARR_JELLYFIN_URL` is an internal name like `http://jellyfin:8096`. Cliparr warns at startup when you have not set it and the Jellyfin address looks like one that only the server can use (`localhost` or a name without dots). |
 | `CLIPARR_LISTEN`       | `:8080`  | Address and port Cliparr listens on inside the container.                                    |
 | `CLIPARR_DATA_DIR`     | `/data` in the image | Directory for the database and the preview pictures. Mount a volume here.        |
 | `CLIPARR_FFMPEG`       | `ffmpeg` | Program that makes the preview pictures. The Docker image includes it. Set to `off` to show movie posters instead. |
@@ -26,7 +26,7 @@ Only needed when a reverse proxy such as Authelia logs users in. See [Single sig
 
 ## Log output
 
-Cliparr logs one line per request (method, path, status, duration) to standard output. It never logs passwords, tokens or search terms. View it with `docker compose logs cliparr`.
+On startup Cliparr checks whether Jellyfin answers. It logs `jellyfin reachable` with Jellyfin's version, or `cannot reach Jellyfin yet` and keeps trying every ten seconds. Then it logs one line per request (method, path, status, duration) to standard output. It never logs passwords, tokens or search terms. View it with `docker compose logs cliparr`.
 
 ## Upgrading
 

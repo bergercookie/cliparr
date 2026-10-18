@@ -10,7 +10,7 @@ All builds are attached to each [GitHub release](https://github.com/bergercookie
 
 1. Download `cliparr-<version>.apk` from the latest release on your phone.
 2. Open it. Android asks whether the browser (or file manager) may install apps; allow it.
-3. Start Cliparr and enter the address of your server, for example `http://192.168.1.10:8080` or `https://cliparr.example.com`. Plain `http://` addresses work, since most home servers have no certificate.
+3. Start Cliparr and enter the address of your server, for example `http://192.168.1.10:8080` or `https://cliparr.example.com`. The web interface shows it as a QR code under Settings, Other devices. Plain `http://` addresses work, since most home servers have no certificate.
 4. Log in with your Jellyfin account.
 
 If your server is behind single sign-on, use the separate app host name described in [Single sign-on](sso.md#the-apps-and-the-browser-extension-cannot-do-sso).
