@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
 import '../api/api_client.dart';
@@ -33,6 +34,9 @@ class ClipPlayer extends StatefulWidget {
   State<ClipPlayer> createState() => ClipPlayerState();
 }
 
+/// How far the left and right arrow keys seek.
+const _seekStep = Duration(seconds: 5);
+
 class ClipPlayerState extends State<ClipPlayer> {
   late final VideoPlayerController _controller;
   Object? _error;
@@ -45,6 +49,7 @@ class ClipPlayerState extends State<ClipPlayer> {
   @override
   void initState() {
     super.initState();
+    HardwareKeyboard.instance.addHandler(_onKey);
     _controller = VideoPlayerController.networkUrl(
       widget.api.streamUrl(widget.itemId),
       httpHeaders: widget.api.authHeaders,
@@ -71,6 +76,7 @@ class ClipPlayerState extends State<ClipPlayer> {
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_onKey);
     _controller.dispose();
     super.dispose();
   }
@@ -98,7 +104,45 @@ class ClipPlayerState extends State<ClipPlayer> {
     _loopEndMs = null;
   }
 
+  /// Space pauses or resumes; the arrow keys seek. Keys typed into a text
+  /// field, or meant for a button or the seek bar that has focus, are left alone.
+  bool _onKey(KeyEvent event) {
+    if (event is KeyUpEvent || !_controller.value.isInitialized) return false;
+    final focus = FocusManager.instance.primaryFocus?.context;
+    if (focus != null &&
+        (focus.findAncestorWidgetOfExactType<EditableText>() != null ||
+            focus.widget is EditableText ||
+            focus.findAncestorWidgetOfExactType<ButtonStyleButton>() != null ||
+            focus.findAncestorWidgetOfExactType<IconButton>() != null ||
+            focus.findAncestorWidgetOfExactType<Slider>() != null)) {
+      return false;
+    }
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.space && event is KeyDownEvent) {
+      _toggle();
+    } else if (key == LogicalKeyboardKey.arrowLeft) {
+      _seekBy(-_seekStep);
+    } else if (key == LogicalKeyboardKey.arrowRight) {
+      _seekBy(_seekStep);
+    } else {
+      return false;
+    }
+    return true;
+  }
+
+  void _seekBy(Duration step) {
+    final value = _controller.value;
+    final target = value.position + step;
+    _controller.seekTo(
+      target < Duration.zero
+          ? Duration.zero
+          : (target > value.duration ? value.duration : target),
+    );
+  }
+
   void _toggle() {
+    // Leave the button that was clicked, so the keys keep reaching the player.
+    FocusManager.instance.primaryFocus?.unfocus();
     if (_controller.value.isPlaying) {
       _controller.pause();
     } else {
