@@ -14,7 +14,7 @@ class ClipPlayer extends StatefulWidget {
     required this.itemId,
     this.startMs,
     this.endMs,
-    this.autoplay = false,
+    this.autoplay = true,
   });
 
   final ApiClient api;
@@ -24,6 +24,9 @@ class ClipPlayer extends StatefulWidget {
   /// loops back from [endMs].
   final int? startMs;
   final int? endMs;
+
+  /// Start playing as soon as the video is ready. Browsers may refuse this
+  /// until the user has interacted with the page; the video then stays paused.
   final bool autoplay;
 
   @override
@@ -56,8 +59,10 @@ class ClipPlayerState extends State<ClipPlayer> {
               widget.endMs!,
               play: widget.autoplay,
             );
+          } else if (widget.autoplay) {
+            await _play();
           }
-          setState(() {});
+          if (mounted) setState(() {});
         })
         .catchError((Object e) {
           if (mounted) setState(() => _error = e);
@@ -75,7 +80,16 @@ class ClipPlayerState extends State<ClipPlayer> {
     _loopStartMs = startMs;
     _loopEndMs = endMs;
     await _controller.seekTo(Duration(milliseconds: startMs));
-    if (play) await _controller.play();
+    if (play) await _play();
+  }
+
+  /// Plays, or stays paused when the browser does not allow autoplay.
+  Future<void> _play() async {
+    try {
+      await _controller.play();
+    } catch (_) {
+      // The play button is right there for the user to press.
+    }
   }
 
   /// Stops looping so the whole video can be played.
@@ -108,9 +122,19 @@ class ClipPlayerState extends State<ClipPlayer> {
     final value = _controller.value;
     return Column(
       children: [
-        AspectRatio(
-          aspectRatio: value.aspectRatio,
-          child: VideoPlayer(_controller),
+        // Keeps the play button and the seek bar on screen: the video only
+        // takes what is left of a share of the window's height.
+        ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: (MediaQuery.sizeOf(context).height * 0.4).clamp(
+              160.0,
+              480.0,
+            ),
+          ),
+          child: AspectRatio(
+            aspectRatio: value.aspectRatio,
+            child: VideoPlayer(_controller),
+          ),
         ),
         Row(
           children: [
