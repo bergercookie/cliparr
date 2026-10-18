@@ -136,10 +136,11 @@ test-app:
 test-extension:
     node --test 'extension/test/*.test.js'
 
-# Tests for the release version script.
+# Tests for the release scripts: the version rules and the call that creates the GitHub release.
 [group('check')]
 test-scripts:
     scripts/test-version.sh
+    scripts/test-github-release.sh
 
 # All unit tests.
 [group('check')]
@@ -298,8 +299,10 @@ github-release release kind="stable":
     [[ "{{ kind }}" == "prerelease" ]] && flags+=(--prerelease)
     # Nightlies create their tag here, so pin it to the commit that was built.
     [[ -n "${GITHUB_SHA:-}" ]] && flags+=(--target "$GITHUB_SHA")
-    gh release create "v{{ release }}" -- * \
-      --repo "{{ repo }}" --title "Cliparr {{ release }}" --generate-notes "${flags[@]}"
+    # The files come last, after `--`: that way a file name is never taken for an
+    # option, and the options are not taken for file names.
+    gh release create "v{{ release }}" --repo "{{ repo }}" --title "Cliparr {{ release }}" \
+      --generate-notes "${flags[@]}" -- *
 
 # Delete all but the newest nightly releases and their tags. Usage: just nightly-prune [keep]
 [group('release')]
