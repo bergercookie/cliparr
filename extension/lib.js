@@ -22,7 +22,7 @@
     let url;
     try {
       url = new URL(text);
-    } catch (e) {
+    } catch {
       return null;
     }
     if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
@@ -59,7 +59,7 @@
     let data;
     try {
       data = JSON.parse(storedJson);
-    } catch (e) {
+    } catch {
       return null;
     }
     const servers = (data && Array.isArray(data.Servers) ? data.Servers : []).filter(

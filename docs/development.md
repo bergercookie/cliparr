@@ -66,6 +66,12 @@ The logo is `packaging/cliparr.svg`: scissors cutting a film strip. It is the on
 
 The code lives in `extension/` and is loaded as it is; `just package-extension <version>` makes the Chrome and Firefox zips (they differ only in the generated manifest). To try it by hand in Chrome, run `scripts/build-extension.sh`, then load `build/extension/chrome` as an unpacked extension. `SCREENSHOT_DIR=docs/screenshots just e2e-extension` refreshes the picture used in the docs.
 
+Three checks cover the extension:
+
+- `just lint-extension` runs ESLint on the scripts (undefined or unused names, `==`, `eval` and similar) and then Firefox's `web-ext` linter on the generated manifest. The settings are in `extension/eslint.config.cjs`. Nothing needs installing: `npx` fetches a pinned ESLint, so the extension itself keeps zero npm dependencies.
+- `just test-extension` runs the unit tests, including ones that fail if the manifest asks for more access than the extension promises (never `<all_urls>`, only the permissions it uses today).
+- `just e2e-extension` loads the built extension into a real Chromium and bookmarks a clip in a stand-in for Jellyfin's player. It runs on Chrome only: Playwright cannot load extensions into Firefox, so Firefox relies on the shared code, the unit tests and the `web-ext` lint.
+
 Chromium and Firefox parse some input differently (for example a space in a host name), so keep decisions like "is this a valid address" in `lib.js` with explicit rules and unit tests, not in the URL parser alone.
 
 ## Android upgrade test

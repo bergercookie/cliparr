@@ -53,7 +53,7 @@ document.getElementById('test').addEventListener('click', async () => {
     const info = await response.json();
     if (info.name !== 'cliparr') throw new Error('not Cliparr');
     show('Connected to Cliparr ' + info.version + '.');
-  } catch (e) {
+  } catch {
     show('Cannot reach Cliparr at that address. If you have not saved yet, press Save first to grant access.', true);
   }
 });

@@ -20,7 +20,7 @@ async function getSettings() {
 async function registerButton() {
   try {
     await api.scripting.unregisterContentScripts({ ids: [SCRIPT_ID] });
-  } catch (e) {
+  } catch {
     // Nothing was registered yet.
   }
   const { jellyfinUrl } = await getSettings();
@@ -62,13 +62,13 @@ async function save(message, sender) {
       headers: { Authorization: 'Jellyfin ' + message.token, 'Content-Type': 'application/json' },
       body: JSON.stringify({ itemId: message.itemId, startMs: message.startMs, endMs: message.endMs }),
     });
-  } catch (e) {
+  } catch {
     return { ok: false, error: lib.saveErrorMessage(0) };
   }
   let body = null;
   try {
     body = await response.json();
-  } catch (e) {
+  } catch {
     // Not a JSON answer; the status is enough.
   }
   if (!response.ok) return { ok: false, error: lib.saveErrorMessage(response.status, body && body.error) };

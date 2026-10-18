@@ -67,6 +67,7 @@ lint:
 [group('check')]
 lint-go:
     #!/usr/bin/env bash
+    set -euo pipefail
     cd server
     unformatted="$(gofmt -l .)"
     if [[ -n "$unformatted" ]]; then echo "Not gofmt-ed:"; echo "$unformatted"; exit 1; fi
@@ -82,15 +83,17 @@ lint-app:
 [group('check')]
 lint-bash:
     #!/usr/bin/env bash
+    set -euo pipefail
     mapfile -t scripts < <(find . -name '*.sh' -not -path './app/*' -not -path './.git/*' -not -path './build/*' -not -path './.venv/*' -not -path './.devbox/*' -not -path '*/node_modules/*')
     shellcheck "${scripts[@]}"
     shfmt -d -i 2 -ci "${scripts[@]}"
 
-# Syntax-check the extension scripts and validate both browser manifests (Firefox's web-ext linter).
+# ESLint on the extension scripts, then Firefox's web-ext linter on both browser manifests.
 [group('check')]
 lint-extension:
     #!/usr/bin/env bash
-    for f in extension/*.js extension/test/*.js; do node --check "$f"; done
+    set -euo pipefail
+    (cd extension && npx --yes eslint@10.12.0 --max-warnings 0 .)
     scripts/build-extension.sh 0.0.0 >/dev/null
     npx --yes web-ext@10.8.0 lint --source-dir build/extension/firefox --warnings-as-errors
 
@@ -113,6 +116,7 @@ vuln:
 [group('check')]
 test-go:
     #!/usr/bin/env bash
+    set -euo pipefail
     mkdir -p build/coverage
     (cd server && go test -race -covermode=atomic -coverprofile=../build/coverage/raw.out ./...)
     # Leave out the fake servers and the generated frontend bundle: they are test tooling.
@@ -207,6 +211,7 @@ screenshots: build-web
 [group('build')]
 icons:
     #!/usr/bin/env bash
+    set -euo pipefail
     source scripts/browser-env.sh
     "$(browser_python)" scripts/make-icons.py
 
@@ -226,6 +231,7 @@ nightly-version:
 [group('release')]
 package-linux release:
     #!/usr/bin/env bash
+    set -euo pipefail
     release="{{ release }}"
     (cd app && flutter build linux --release --dart-define=CLIPARR_VERSION="$release" \
       --build-name "${release%%.post*}" --build-number "$(git rev-list --count HEAD)")
@@ -247,6 +253,7 @@ package-extension release:
 [group('release')]
 package-apk release:
     #!/usr/bin/env bash
+    set -euo pipefail
     release="{{ release }}"
     (cd app && flutter build apk --release --dart-define=CLIPARR_VERSION="$release" \
       --build-name "${release%%.post*}" --build-number "$(git rev-list --count HEAD)")
@@ -257,6 +264,7 @@ package-apk release:
 [group('release')]
 docker-publish release:
     #!/usr/bin/env bash
+    set -euo pipefail
     release="{{ release }}"
     repo="{{ repo }}"
     image="ghcr.io/${repo,,}"
@@ -278,6 +286,7 @@ docker-publish release:
 [group('release')]
 github-release release kind="stable":
     #!/usr/bin/env bash
+    set -euo pipefail
     cd dist
     sha256sum -- * > SHA256SUMS
     flags=()
@@ -291,6 +300,7 @@ github-release release kind="stable":
 [group('release')]
 nightly-prune keep="14":
     #!/usr/bin/env bash
+    set -euo pipefail
     gh release list --repo "{{ repo }}" --limit 200 --json tagName,publishedAt \
       --jq 'map(select(.tagName | test("\\.post[0-9]+\\.[0-9]{8}$"))) | sort_by(.publishedAt) | reverse | .[{{ keep }}:][].tagName' |
       while read -r tag; do
