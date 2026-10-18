@@ -141,9 +141,28 @@
     return { startMs: startMs, endMs: Math.max(positionMs, startMs + MIN_CLIP_MS) };
   }
 
+  // reachHelp says what to check when a request to Cliparr does not complete. A browser
+  // reports a refused connection, a wrong name and a certificate it does not trust in the
+  // same way (Firefox calls all of them "CORS request did not succeed"), and an extension
+  // cannot show the certificate warning, so the text has to cover them all.
+  function reachHelp(baseUrl) {
+    const help = 'Check the address and that Cliparr is running.';
+    if (!/^https:\/\//i.test(baseUrl || '')) return help;
+    return (
+      help +
+      ' If it uses a certificate your browser does not trust (self-signed, or from your own certificate authority), ' +
+      'open ' + baseUrl + ' in a browser tab and accept the certificate once: the extension cannot show the warning itself.'
+    );
+  }
+
+  // unreachableMessage is what the options page says when Cliparr does not answer.
+  function unreachableMessage(baseUrl) {
+    return 'Cannot reach Cliparr at ' + baseUrl + '. ' + reachHelp(baseUrl);
+  }
+
   // saveErrorMessage explains a failed save in words a viewer can act on.
-  function saveErrorMessage(status, serverMessage) {
-    if (status === 0) return 'Cliparr cannot be reached. Check the address in the extension options.';
+  function saveErrorMessage(status, serverMessage, cliparrUrl) {
+    if (status === 0) return 'Cliparr cannot be reached. ' + reachHelp(cliparrUrl);
     if (status === 401) return 'Jellyfin did not accept your login. Reload the page or log in to Jellyfin again.';
     if (status === 404) return 'Jellyfin does not let you see this item, so it cannot be bookmarked.';
     return serverMessage || 'Cliparr could not save the bookmark (error ' + status + ').';
@@ -162,6 +181,7 @@
     mark: mark,
     quickRange: quickRange,
     saveErrorMessage: saveErrorMessage,
+    unreachableMessage: unreachableMessage,
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = lib;

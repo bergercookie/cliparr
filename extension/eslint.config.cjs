@@ -7,6 +7,7 @@
 // What the extension's scripts may use from the browser.
 const browser = {
   AbortController: 'readonly',
+  AbortSignal: 'readonly',
   CustomEvent: 'readonly',
   console: 'readonly',
   document: 'readonly',

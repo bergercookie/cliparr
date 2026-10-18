@@ -9,10 +9,15 @@ Usage: e2e.py EXTENSION_DIR CLIPARR_URL JELLYFIN_URL
 Set CHROMIUM=/path/to/chromium to use an installed browser, and
 SCREENSHOT_DIR=docs/screenshots to also write a picture of the button for the docs.
 """
+import contextlib
+import http.server
 import json
 import os
+import ssl
+import subprocess
 import sys
 import tempfile
+import threading
 import urllib.request
 
 from playwright.sync_api import Page, expect, sync_playwright
@@ -44,6 +49,44 @@ def cliparr_clips(cliparr: str) -> list:
 
     token = call("/api/auth/login", {"username": "alice", "password": "pw"})["token"]
     return sorted(call("/api/clips", token=token), key=lambda clip: clip["id"])
+
+
+@contextlib.contextmanager
+def untrusted_https_cliparr():
+    """A server that answers like Cliparr behind a certificate no browser trusts: it signs itself."""
+    with tempfile.TemporaryDirectory() as directory:
+        key, cert = f"{directory}/key.pem", f"{directory}/cert.pem"
+        subprocess.run(
+            ["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", key, "-out", cert,
+             "-days", "1", "-subj", "/CN=127.0.0.1"],
+            check=True, capture_output=True,
+        )
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                body = b'{"name": "cliparr", "version": "test"}'
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def log_message(self, *_):
+                pass
+
+        class Server(http.server.ThreadingHTTPServer):
+            def handle_error(self, *_):
+                pass  # the browser walks away from the handshake; that is the point
+
+        server = Server(("127.0.0.1", 0), Handler)
+        tls = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        tls.load_cert_chain(cert, key)
+        server.socket = tls.wrap_socket(server.socket, server_side=True)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        try:
+            yield f"https://127.0.0.1:{server.server_address[1]}"
+        finally:
+            server.shutdown()
 
 
 def configure(context, extension_id: str, cliparr: str, jellyfin: str) -> Page:
@@ -102,6 +145,14 @@ def main() -> int:
         options.click("button[type=submit]")
         expect(options.locator("#status")).to_contain_text("Enter both addresses")
         print("ok   - an invalid address is refused")
+
+        print("== a Cliparr behind a certificate the browser does not trust")
+        with untrusted_https_cliparr() as address:
+            options.fill("#cliparr", address)
+            options.click("#test")
+            expect(options.locator("#status")).to_contain_text("accept the certificate")
+            expect(options.locator("#status")).to_contain_text(f"Cannot reach Cliparr at {address}")
+            print("ok   - the options page explains what to do about the certificate")
 
         print("== bookmarking in the Jellyfin player ==")
         player = open_player(context, jellyfin)

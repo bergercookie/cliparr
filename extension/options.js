@@ -41,21 +41,52 @@ form.addEventListener('submit', async (event) => {
   }
   await api.storage.local.set(addresses);
   await api.runtime.sendMessage({ type: 'apply-settings' });
-  show('Saved. Open a video in Jellyfin; the Bookmark button appears on the page.');
+  show('Saved. Checking that Cliparr answers...');
+  const check = await checkCliparr(addresses.cliparrUrl);
+  if (check.ok) {
+    show('Saved. ' + check.text + ' Open a video in Jellyfin; the Bookmark button appears on the page.');
+  } else {
+    show('Saved, but it does not work yet. ' + check.text, true);
+  }
 });
+
+// checkCliparr asks the Cliparr at an address who it is, and says how that went.
+async function checkCliparr(cliparrUrl) {
+  // A host that never answers should not leave the page waiting for ever.
+  const timeout = new AbortController();
+  const timer = setTimeout(() => timeout.abort(), 8000);
+  let response;
+  try {
+    response = await fetch(cliparrUrl + '/api/info', { signal: timeout.signal });
+  } catch {
+    return { ok: false, text: lib.unreachableMessage(cliparrUrl) };
+  } finally {
+    clearTimeout(timer);
+  }
+  let info = null;
+  try {
+    info = await response.json();
+  } catch {
+    // Something other than Cliparr answered.
+  }
+  if (!info || info.name !== 'cliparr') {
+    return { ok: false, text: 'Something answers at ' + cliparrUrl + ', but it is not Cliparr. Check the address and the port.' };
+  }
+  return { ok: true, text: 'Connected to Cliparr ' + info.version + '.' };
+}
 
 document.getElementById('test').addEventListener('click', async () => {
   const addresses = readAddresses();
   if (!addresses) return;
-  show('Testing...');
-  try {
-    const response = await fetch(addresses.cliparrUrl + '/api/info');
-    const info = await response.json();
-    if (info.name !== 'cliparr') throw new Error('not Cliparr');
-    show('Connected to Cliparr ' + info.version + '.');
-  } catch {
-    show('Cannot reach Cliparr at that address. If you have not saved yet, press Save first to grant access.', true);
+  // Without this permission the browser treats the request as a cross-origin one and refuses it.
+  const pattern = lib.permissionPattern(addresses.cliparrUrl);
+  if (!(await api.permissions.contains({ origins: [pattern] }))) {
+    show('Press Save first: the browser has not yet allowed the extension to use that address.', true);
+    return;
   }
+  show('Testing...');
+  const check = await checkCliparr(addresses.cliparrUrl);
+  show(check.text, !check.ok);
 });
 
 api.storage.local.get(['jellyfinUrl', 'cliparrUrl']).then((stored) => {

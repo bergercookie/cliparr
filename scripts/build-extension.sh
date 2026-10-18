@@ -4,11 +4,12 @@
 # Both browsers share the code and differ only in the manifest: Chrome runs the
 # background script as a service worker, Firefox as an event page.
 #
-# Usage: build-extension.sh [VERSION] [--test-hosts PATTERN]
+# Usage: build-extension.sh [VERSION] [--test-hosts PATTERNS]
 #   VERSION         e.g. 1.2.3 or 1.3.3.post2.20261017 (default: 0.0.0)
 #   --test-hosts    build only a Chrome copy for the end-to-end test, with access
-#                   to the given pages (e.g. "http://127.0.0.1/*") granted at
-#                   install, because a test cannot click the permission prompt
+#                   to the given pages (e.g. "http://127.0.0.1/*", several separated
+#                   by commas) granted at install, because a test cannot click the
+#                   permission prompt
 #
 # Output: build/extension/chrome and build/extension/firefox, plus zip files in
 # dist/ (not for --test-hosts).
@@ -51,7 +52,7 @@ assemble() {
   rm -rf "$dir"
   mkdir -p "$dir"
   for f in "${FILES[@]}"; do cp -r "$src/$f" "$dir/"; done
-  jq --arg version "$manifest_version" --arg name "$version" --argjson hosts "$(jq -nc --arg h "$test_hosts" '[$h]')" \
+  jq --arg version "$manifest_version" --arg name "$version" --argjson hosts "$(jq -nc --arg h "$test_hosts" '$h | split(",")')" \
     ".version = \$version | $filter" "$src/manifest.base.json" >"$dir/manifest.json"
 }
 

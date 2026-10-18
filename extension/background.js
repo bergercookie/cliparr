@@ -63,7 +63,7 @@ async function save(message, sender) {
       body: JSON.stringify({ itemId: message.itemId, startMs: message.startMs, endMs: message.endMs }),
     });
   } catch {
-    return { ok: false, error: lib.saveErrorMessage(0) };
+    return { ok: false, error: lib.saveErrorMessage(0, undefined, cliparrUrl) };
   }
   let body = null;
   try {

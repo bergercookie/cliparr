@@ -22,7 +22,7 @@ trap cleanup EXIT
 source "$root/scripts/browser-env.sh"
 python="$(browser_python)"
 
-"$root/scripts/build-extension.sh" 0.0.0 --test-hosts "http://127.0.0.1/*"
+"$root/scripts/build-extension.sh" 0.0.0 --test-hosts "http://127.0.0.1/*,https://127.0.0.1/*"
 "$root/scripts/make-sample-video.sh" "$work/sample.webm"
 
 (cd "$root/server" && go build -o "$work/bin/" ./cmd/cliparr ./cmd/fakejellyfin)

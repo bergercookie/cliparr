@@ -169,3 +169,20 @@ test('saveErrorMessage explains each failure', () => {
   assert.equal(lib.saveErrorMessage(400, 'endMs is past the end of the video'), 'endMs is past the end of the video');
   assert.match(lib.saveErrorMessage(500), /error 500/);
 });
+
+test('unreachableMessage tells what to check, and mentions the certificate only for https', () => {
+  const plain = lib.unreachableMessage('http://192.168.1.10:8080');
+  assert.match(plain, /Cannot reach Cliparr at http:\/\/192\.168\.1\.10:8080/);
+  assert.match(plain, /that Cliparr is running/);
+  assert.doesNotMatch(plain, /certificate/);
+
+  const secure = lib.unreachableMessage('https://xf85.lan:8081');
+  assert.match(secure, /certificate/);
+  assert.match(secure, /open https:\/\/xf85\.lan:8081 in a browser tab and accept the certificate/);
+});
+
+test('saveErrorMessage gives the certificate advice for an https Cliparr too', () => {
+  assert.match(lib.saveErrorMessage(0, undefined, 'https://xf85.lan:8081'), /certificate/);
+  assert.doesNotMatch(lib.saveErrorMessage(0, undefined, 'http://192.168.1.10:8080'), /certificate/);
+  assert.match(lib.saveErrorMessage(0), /cannot be reached/);
+});
