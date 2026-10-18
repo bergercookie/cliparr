@@ -184,7 +184,8 @@ func (c *Client) items(ctx context.Context, token string, q url.Values) ([]Item,
 		switch {
 		case r.Type == "Episode":
 			title = fmt.Sprintf("%s S%02dE%02d - %s", r.SeriesName, r.ParentIndexNumber, r.IndexNumber, r.Name)
-		case r.ProductionYear != 0:
+		// Media Jellyfin could not identify keeps its file name, year included.
+		case r.ProductionYear != 0 && !strings.HasSuffix(r.Name, fmt.Sprintf("(%d)", r.ProductionYear)):
 			title = fmt.Sprintf("%s (%d)", r.Name, r.ProductionYear)
 		}
 		items = append(items, Item{

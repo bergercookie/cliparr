@@ -2,6 +2,7 @@ package jellyfin_test
 
 import (
 	"errors"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -53,6 +54,32 @@ func TestSearchBuildsReadableTitles(t *testing.T) {
 	}
 	if titles["pilot"] != "Fake Show S01E01 - Pilot" {
 		t.Errorf("episode title: %q", titles["pilot"])
+	}
+}
+
+// Jellyfin keeps the file name, year included, for media it could not identify.
+func TestTitleDoesNotRepeatTheYearOfAnUnidentifiedFile(t *testing.T) {
+	jf := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"Items":[
+			{"Id":"a","Name":"Test Movie (2020)","Type":"Movie","ProductionYear":2020},
+			{"Id":"b","Name":"Rocky","Type":"Movie","ProductionYear":1976},
+			{"Id":"c","Name":"Blade Runner 2049","Type":"Movie","ProductionYear":2017}]}`))
+	}))
+	t.Cleanup(jf.Close)
+	c, err := jellyfin.New(jf.URL, "test-device", "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	items, err := c.Search(t.Context(), "token", "user", "x", 10)
+	if err != nil || len(items) != 3 {
+		t.Fatalf("search: %v, %d items", err, len(items))
+	}
+	want := []string{"Test Movie (2020)", "Rocky (1976)", "Blade Runner 2049 (2017)"}
+	for i, item := range items {
+		if item.Title != want[i] {
+			t.Errorf("title %d: got %q, want %q", i, item.Title, want[i])
+		}
 	}
 }
 
