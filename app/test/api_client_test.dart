@@ -92,6 +92,38 @@ void main() {
     );
   });
 
+  test('the separate sound is asked for from a given time', () {
+    final api = clientWith((r) => json({}));
+    expect(
+      api.audioUrl('abc', 90000).toString(),
+      'http://server:8080/api/items/abc/audio?start=90000',
+    );
+  });
+
+  test('an item says whether the browser can decode its audio', () async {
+    final api = clientWith((r) {
+      expect(r.url.path, '/api/items/abc');
+      return json({
+        'id': 'abc',
+        'title': 'Dolby Dreams (2021)',
+        'type': 'Movie',
+        'runtimeMs': 6000000,
+        'audioPlayable': false,
+      });
+    });
+    expect((await api.item('abc')).audioPlayable, isFalse);
+  });
+
+  test('a server that says nothing about audio gets the plain file', () {
+    final item = Item.fromJson({
+      'id': 'a',
+      'title': 'A',
+      'type': 'Movie',
+      'runtimeMs': 1,
+    });
+    expect(item.audioPlayable, isTrue);
+  });
+
   test('thumbnail address changes when the clip is edited', () {
     final api = ApiClient(baseUrl: Uri.parse('http://server:8080'));
     Clip clipAt(DateTime updatedAt) => Clip(

@@ -55,7 +55,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-mkdir -p "$work/server" "$work/media/Harbor Lights (2020)"
+mkdir -p "$work/server" "$work/media/Harbor Lights (2020)" "$work/media/Dolby Dreams (2021)"
 tar -xzf "$tarball" -C "$work/server"
 
 # Ten minutes of H.264/AAC with a running timer, small and quick to make. The movie is
@@ -63,6 +63,12 @@ tar -xzf "$tarball" -C "$work/server"
 ffmpeg -loglevel error -f lavfi -i "testsrc2=duration=600:size=320x180:rate=12" \
   -f lavfi -i "sine=frequency=330:duration=600" -c:v libx264 -pix_fmt yuv420p -preset ultrafast -crf 35 \
   -c:a aac -b:a 32k -shortest -movflags +faststart "$work/media/Harbor Lights (2020)/Harbor Lights (2020).mp4"
+
+# A minute with 5.1 Dolby Digital audio, which browsers cannot decode: they play the picture,
+# in silence. Cliparr has to supply the sound another way.
+ffmpeg -loglevel error -f lavfi -i "testsrc2=duration=60:size=320x180:rate=12" \
+  -f lavfi -i "sine=frequency=440:duration=60" -c:v libx264 -pix_fmt yuv420p -preset ultrafast -crf 35 \
+  -c:a ac3 -ac 6 -b:a 192k -shortest -movflags +faststart "$work/media/Dolby Dreams (2021)/Dolby Dreams (2021).mp4"
 
 jellyfin_url="http://127.0.0.1:$jellyfin_port"
 cliparr_url="http://127.0.0.1:$cliparr_port"

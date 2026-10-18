@@ -296,3 +296,86 @@ func TestLogoutDeletesTheLoginCookie(t *testing.T) {
 		t.Errorf("expected one expired, hardened session cookie, got %+v", cookies)
 	}
 }
+
+func TestItemSaysWhetherBrowsersCanPlayItsAudio(t *testing.T) {
+	e := newEnv(t)
+	token := e.login("alice")
+	for id, want := range map[string]bool{"movie-rocky": true, "movie-dolby": false} {
+		var item struct {
+			AudioPlayable *bool `json:"audioPlayable"`
+		}
+		if code := e.call("GET", "/api/items/"+id, token, nil, &item); code != 200 {
+			t.Fatalf("%s: got %d", id, code)
+		}
+		if item.AudioPlayable == nil || *item.AudioPlayable != want {
+			t.Errorf("%s: audioPlayable = %v, want %v", id, item.AudioPlayable, want)
+		}
+	}
+	if code := e.call("GET", "/api/items/movie-secret", e.login("bob"), nil, nil); code != 404 {
+		t.Errorf("an item bob may not see: got %d, want 404", code)
+	}
+	if code := e.call("GET", "/api/items/movie-rocky", "", nil, nil); code != 401 {
+		t.Errorf("without login: got %d, want 401", code)
+	}
+}
+
+func TestAudioAsksJellyfinForStereoMP3FromTheGivenTime(t *testing.T) {
+	e := newEnv(t)
+	req, _ := http.NewRequest("GET", e.url+"/api/items/movie-dolby/audio?start=90000", nil)
+	req.Header.Set("Authorization", "Bearer "+e.login("alice"))
+	req.Header.Set("Range", "bytes=0-") // browsers send this; a transcode cannot honour it
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("got %d, want 200", resp.StatusCode)
+	}
+
+	asked := e.fake.AudioStreams()
+	if len(asked) != 1 {
+		t.Fatalf("Jellyfin was asked %d times, want once", len(asked))
+	}
+	for key, want := range map[string]string{
+		"AudioCodec": "mp3", "MaxAudioChannels": "2",
+		"StartTimeTicks": "900000000", // 90 s
+	} {
+		if got := asked[0].Get(key); got != want {
+			t.Errorf("%s = %q, want %q", key, got, want)
+		}
+	}
+}
+
+func TestEveryAudioRequestGetsItsOwnPlaySession(t *testing.T) {
+	// Jellyfin hands back an earlier transcode, whatever the start, to a request in the same session.
+	e := newEnv(t)
+	token := e.login("alice")
+	for _, start := range []string{"0", "40000"} {
+		e.call("GET", "/api/items/movie-dolby/audio?start="+start, token, nil, nil)
+	}
+	asked := e.fake.AudioStreams()
+	if len(asked) != 2 || asked[0].Get("PlaySessionId") == "" || asked[0].Get("PlaySessionId") == asked[1].Get("PlaySessionId") {
+		t.Errorf("want two different play sessions, got %v", asked)
+	}
+}
+
+func TestAudioRejectsABadStart(t *testing.T) {
+	e := newEnv(t)
+	token := e.login("alice")
+	for _, start := range []string{"abc", "-5"} {
+		if code := e.call("GET", "/api/items/movie-dolby/audio?start="+start, token, nil, nil); code != 400 {
+			t.Errorf("start=%s: got %d, want 400", start, code)
+		}
+	}
+}
+
+func TestAudioNeedsLoginAndVisibility(t *testing.T) {
+	e := newEnv(t)
+	if code := e.call("GET", "/api/items/movie-rocky/audio", "", nil, nil); code != 401 {
+		t.Errorf("without login: got %d, want 401", code)
+	}
+	if code := e.call("GET", "/api/items/movie-secret/audio", e.login("bob"), nil, nil); code != 404 {
+		t.Errorf("an item bob may not see: got %d, want 404", code)
+	}
+}

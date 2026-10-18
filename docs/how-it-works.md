@@ -40,6 +40,14 @@ Jellyfin's web client has no address format with a start time, so Cliparr uses J
 
 The player asks Cliparr for `/api/items/<id>/stream`. Cliparr forwards the request to Jellyfin's original-file endpoint and relays the answer, including HTTP range requests, so seeking works. The Jellyfin address and token never reach the browser. Playback stops at the clip's end and jumps back to its start.
 
+### Audio a browser cannot decode
+
+Browsers cannot decode some audio formats, among them Dolby Digital (AC3, E-AC3), DTS and TrueHD, which are common on movies from discs. Played as it is, such a video shows its picture in silence.
+
+When Jellyfin says an item has such audio, the player keeps the picture on the original file, muted, and plays the sound from `/api/items/<id>/audio?start=<milliseconds>` next to it. Cliparr asks Jellyfin to convert the sound to stereo MP3 starting at that time, and relays the answer. Because Jellyfin converts the sound as it is being read, it cannot be seeked: after every jump of the picture, and whenever the two drift apart, the player asks for a new copy that starts where the picture is. So after a jump the sound is silent for a moment. Jellyfin does this conversion with its own ffmpeg, so the Jellyfin user needs to be allowed to transcode audio (the default).
+
+If the sound cannot be had either, the player shows a muted speaker next to the time.
+
 Jellyfin counts time in *ticks* of 100 nanoseconds (10,000,000 per second). Cliparr converts to milliseconds when it reads the runtime of an item, so clips and the API use milliseconds everywhere.
 
 ## API
@@ -54,7 +62,9 @@ All endpoints return JSON and need a login, except the first three.
 | `POST /api/auth/logout` | End the session |
 | `GET /api/me` | The current user |
 | `GET /api/items?q=` | Search movies and episodes |
+| `GET /api/items/{id}` | One item; `audioPlayable` tells whether browsers can decode its audio |
 | `GET /api/items/{id}/stream` and `/image` | Video and poster, relayed from Jellyfin |
+| `GET /api/items/{id}/audio?start=` | The sound as stereo MP3 from `start` milliseconds on, for items whose own audio browsers cannot decode |
 | `GET/POST /api/clips`, `GET/PUT/DELETE /api/clips/{id}` | Manage clips; `GET /api/clips` accepts `q` and `tag` |
 | `GET /api/clips/{id}/thumbnail` | Preview picture of the clip (JPEG, or the poster if it cannot be made) |
 | `GET /api/clips/{id}/jellyfin` | How to open the clip in Jellyfin: web address, start, current resume point, controllable devices |

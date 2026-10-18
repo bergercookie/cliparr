@@ -61,6 +61,7 @@ class Item {
     required this.title,
     required this.type,
     required this.runtimeMs,
+    this.audioPlayable = true,
   });
 
   factory Item.fromJson(Map<String, dynamic> json) => Item(
@@ -68,12 +69,17 @@ class Item {
     title: json['title'] as String,
     type: json['type'] as String,
     runtimeMs: json['runtimeMs'] as int,
+    audioPlayable: json['audioPlayable'] as bool? ?? true,
   );
 
   final String id;
   final String title;
   final String type;
   final int runtimeMs;
+
+  /// False when a browser cannot decode the file's audio (Dolby Digital, DTS
+  /// and the like): the sound then comes separately, see [ApiClient.audioUrl].
+  final bool audioPlayable;
 }
 
 /// A saved moment of an [Item].

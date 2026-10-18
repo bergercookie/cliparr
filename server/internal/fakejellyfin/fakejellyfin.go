@@ -10,8 +10,10 @@ import (
 	"fmt"
 	"mime"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -25,11 +27,16 @@ type item struct {
 	Season, Episode, Year      int
 	Minutes                    int
 	Only                       string // if set, only this user may see the item
+
+	// The codec of the file's audio, as Jellyfin reports it when asked for
+	// MediaSources. Empty reads as AAC.
+	AudioCodec string
 }
 
 var catalog = []item{
 	{ID: "movie-rocky", Name: "Rocky", Type: "Movie", Year: 1976, Minutes: 120},
 	{ID: "episode-pilot", Name: "Pilot", Type: "Episode", SeriesName: "Fake Show", Season: 1, Episode: 1, Minutes: 45},
+	{ID: "movie-dolby", Name: "Dolby Dreams", Type: "Movie", Year: 2021, Minutes: 100, AudioCodec: "ac3"},
 	{ID: "movie-secret", Name: "Secret Movie", Type: "Movie", Year: 2001, Minutes: 90, Only: "alice"},
 }
 
@@ -63,10 +70,11 @@ type Server struct {
 	quickCount     int
 	quick          map[string]*quickConnectRequest // secret -> pending sign-in
 
-	mu       sync.Mutex
-	resume   map[string]int64 // "user/item" -> position in ticks
-	lastPlay *PlayCommand
-	playing  map[string]progress // device id -> what that client last reported playing
+	mu         sync.Mutex
+	resume     map[string]int64 // "user/item" -> position in ticks
+	lastPlay   *PlayCommand
+	audioAsked []url.Values        // queries of the audio streams asked for
+	playing    map[string]progress // device id -> what that client last reported playing
 }
 
 // progress is what a Jellyfin client reports while it plays something.
@@ -120,6 +128,7 @@ func New(options ...Option) *Server {
 	s.mux.HandleFunc("GET /Users/Me", s.me)
 	s.mux.HandleFunc("GET /Items", s.listItems)
 	s.mux.HandleFunc("GET /Videos/{id}/stream", s.stream)
+	s.mux.HandleFunc("GET /Audio/{id}/stream.mp3", s.audioStream)
 	s.mux.HandleFunc("GET /Items/{id}/Images/Primary", s.image)
 	s.mux.HandleFunc("GET /Sessions", s.listSessions)
 	s.mux.HandleFunc("POST /Sessions/{id}/Playing", s.play)
@@ -210,14 +219,50 @@ func (s *Server) listItems(w http.ResponseWriter, r *http.Request) {
 			(ids != "" && ids != it.ID) {
 			continue
 		}
-		out = append(out, map[string]any{
+		entry := map[string]any{
 			"Id": it.ID, "Name": it.Name, "Type": it.Type, "SeriesName": it.SeriesName,
 			"ParentIndexNumber": it.Season, "IndexNumber": it.Episode, "ProductionYear": it.Year,
 			"RunTimeTicks": int64(it.Minutes) * ticksPerMinute,
 			"UserData":     map[string]int64{"PlaybackPositionTicks": s.ResumeTicks(user, it.ID)},
-		})
+		}
+		if strings.Contains(q.Get("fields"), "MediaSources") {
+			entry["MediaSources"] = []any{mediaSource(it)}
+		}
+		out = append(out, entry)
 	}
 	writeJSON(w, map[string]any{"Items": out, "TotalRecordCount": len(out)})
+}
+
+// mediaSource describes an item's file the way Jellyfin's MediaSources do.
+func mediaSource(it item) map[string]any {
+	audio := it.AudioCodec
+	if audio == "" {
+		audio = "aac"
+	}
+	return map[string]any{
+		"Container": "mp4",
+		"MediaStreams": []map[string]any{
+			{"Type": "Video", "Codec": "h264"},
+			{"Type": "Audio", "Codec": audio, "IsDefault": true},
+		},
+	}
+}
+
+// audioStream stands in for Jellyfin's audio transcode: it notes what was
+// asked for and serves the configured video's bytes, never as partial content.
+func (s *Server) audioStream(w http.ResponseWriter, r *http.Request) {
+	s.mu.Lock()
+	s.audioAsked = append(s.audioAsked, r.URL.Query())
+	s.mu.Unlock()
+	r.Header.Del("Range")
+	s.serveBlob(w, r, "audio/mpeg", s.video)
+}
+
+// AudioStreams returns the queries of the audio streams asked for so far.
+func (s *Server) AudioStreams() []url.Values {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return slices.Clone(s.audioAsked)
 }
 
 // stream serves the configured video (zero bytes by default) with Range support.

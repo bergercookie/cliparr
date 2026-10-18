@@ -36,6 +36,12 @@ class ApiClient {
 
   Uri streamUrl(String itemId) => _url('/api/items/$itemId/stream');
 
+  /// The sound of an item as MP3, from [startMs] on, for videos whose own audio
+  /// a browser cannot decode. It cannot be seeked: jumping elsewhere means
+  /// asking for another start.
+  Uri audioUrl(String itemId, int startMs) =>
+      _url('/api/items/$itemId/audio', {'start': '$startMs'});
+
   /// A preview picture of the clip. The version in the address makes a
   /// changed clip load a fresh picture instead of a cached old one.
   Uri thumbnailUrl(Clip clip) => _url('/api/clips/${clip.id}/thumbnail', {
@@ -98,6 +104,10 @@ class ApiClient {
 
   Future<User> me() async =>
       User.fromJson(await _send('GET', '/api/me') as Map<String, dynamic>);
+
+  Future<Item> item(String id) async => Item.fromJson(
+    await _send('GET', '/api/items/$id') as Map<String, dynamic>,
+  );
 
   Future<List<Item>> searchItems(String query) async {
     final json = await _send('GET', '/api/items', query: {'q': query});

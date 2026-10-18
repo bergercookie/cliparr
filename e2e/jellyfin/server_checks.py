@@ -5,7 +5,10 @@ Login, search, streaming, thumbnails, who may see which clip, and the resume poi
 
 Usage: server_checks.py CLIPARR_URL JELLYFIN_URL
 """
+import json
+import subprocess
 import sys
+import tempfile
 
 from common import (MOVIE_QUERY, MOVIE_TITLE, bearer, check, cliparr_login, finish, jellyfin_login, jellyfin_token_header,
                     request)
@@ -36,6 +39,45 @@ check("the poster comes through, or is cleanly missing",
       (status == 200 and headers.get("Content-Type", "").startswith("image/")) or status == 404, (status, headers.get("Content-Type")))
 status, body = request(cliparr, "GET", f"/api/items/{item['id']}/stream")
 check("streaming needs a login", status == 401, status)
+
+print("== audio browsers cannot decode")
+status, plain = request(cliparr, "GET", f"/api/items/{item['id']}", headers=bearer(alice))
+check("AAC audio plays as it is", status == 200 and plain.get("audioPlayable") is True, (status, plain))
+status, found = request(cliparr, "GET", "/api/items?q=dolby", headers=bearer(alice))
+dolby = found[0] if status == 200 and len(found) == 1 else {"id": "missing"}
+status, detail = request(cliparr, "GET", f"/api/items/{dolby['id']}", headers=bearer(alice))
+check("Dolby Digital audio does not", status == 200 and detail.get("audioPlayable") is False, (status, detail))
+
+
+def probe(data: bytes) -> dict:
+    """What ffprobe makes of a downloaded stream."""
+    with tempfile.NamedTemporaryFile(suffix=".mp3") as f:
+        f.write(data)
+        f.flush()
+        out = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "stream=codec_type,codec_name,channels:format=duration",
+                              "-of", "json", f.name], capture_output=True, text=True, check=True).stdout
+    return json.loads(out)
+
+
+def audio_from(start_ms: int):
+    return request(cliparr, "GET", f"/api/items/{dolby['id']}/audio?start={start_ms}", headers=bearer(alice), raw=True)
+
+
+status, headers, data = audio_from(0)
+check("the sound comes as an audio file", status == 200 and len(data) > 1000, (status, len(data)))
+info = probe(data) if status == 200 else {"streams": [], "format": {}}
+audio = info["streams"][0] if info["streams"] else {}
+check("it is MP3", audio.get("codec_name") == "mp3" and len(info["streams"]) == 1, info["streams"])
+check("its 5.1 sound is mixed down to stereo", audio.get("channels") == 2, audio)
+check("it covers the whole minute", 59 <= float(info["format"].get("duration", 0)) <= 62, info["format"])
+
+status, headers, data = audio_from(40000)
+duration = float(probe(data)["format"].get("duration", 0)) if status == 200 else 0
+check("starting 40 s in leaves 20 s of sound", 19 <= duration <= 22, duration)
+status, body = request(cliparr, "GET", f"/api/items/{dolby['id']}/audio?start=oops", headers=bearer(alice))
+check("a start that is no number is refused", status == 400, (status, body))
+status, body = request(cliparr, "GET", f"/api/items/{dolby['id']}/audio")
+check("the sound needs a login", status == 401, status)
 
 print("== clips")
 status, clip = request(cliparr, "POST", "/api/clips", {"itemId": item["id"], "startMs": 120000, "endMs": 130000,

@@ -9,6 +9,7 @@ package jellyfin
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -83,6 +84,10 @@ type Item struct {
 	RuntimeMs  int64
 	SeriesName string
 	ResumeMs   int64 // where this user would resume playback, 0 if not started
+
+	// AudioCodec is the codec of the audio track a player starts with, e.g.
+	// "ac3". It is only filled in by Item, and is empty when Jellyfin did not say.
+	AudioCodec string
 }
 
 // Device is a running Jellyfin client that Cliparr can tell what to play.
@@ -205,7 +210,9 @@ func (c *Client) Search(ctx context.Context, token, userID, query string, limit 
 
 // Item fetches one movie or episode as seen by the user.
 func (c *Client) Item(ctx context.Context, token, userID, id string) (Item, error) {
-	items, err := c.items(ctx, token, url.Values{"userId": {userID}, "ids": {id}})
+	items, err := c.items(ctx, token, url.Values{
+		"userId": {userID}, "ids": {id}, "fields": {"MediaSources,MediaStreams"},
+	})
 	if err != nil {
 		return Item{}, err
 	}
@@ -227,6 +234,8 @@ func (c *Client) items(ctx context.Context, token string, q url.Values) ([]Item,
 			ProductionYear    int
 			RunTimeTicks      int64
 			UserData          struct{ PlaybackPositionTicks int64 }
+			MediaSources      []struct{ MediaStreams []mediaStream }
+			MediaStreams      []mediaStream
 		}
 	}
 	if err := c.do(ctx, http.MethodGet, "/Items", token, q, nil, &resp); err != nil {
@@ -242,13 +251,43 @@ func (c *Client) items(ctx context.Context, token string, q url.Values) ([]Item,
 		case r.ProductionYear != 0 && !strings.HasSuffix(r.Name, fmt.Sprintf("(%d)", r.ProductionYear)):
 			title = fmt.Sprintf("%s (%d)", r.Name, r.ProductionYear)
 		}
-		items = append(items, Item{
+		it := Item{
 			ID: r.Id, Title: title, Type: r.Type, SeriesName: r.SeriesName,
 			RuntimeMs: r.RunTimeTicks / ticksPerMs,
 			ResumeMs:  r.UserData.PlaybackPositionTicks / ticksPerMs,
-		})
+		}
+		streams := r.MediaStreams
+		if len(r.MediaSources) > 0 {
+			streams = append(r.MediaSources[0].MediaStreams, streams...)
+		}
+		it.AudioCodec = defaultAudioCodec(streams)
+		items = append(items, it)
 	}
 	return items, nil
+}
+
+type mediaStream struct {
+	Type      string
+	Codec     string
+	IsDefault bool
+}
+
+// defaultAudioCodec is the codec of the audio track a player starts with: the
+// one marked as default, else the first. It is empty without any audio track.
+func defaultAudioCodec(streams []mediaStream) string {
+	codec := ""
+	for _, st := range streams {
+		if st.Type != "Audio" {
+			continue
+		}
+		if st.IsDefault {
+			return strings.ToLower(st.Codec)
+		}
+		if codec == "" {
+			codec = strings.ToLower(st.Codec)
+		}
+	}
+	return codec
 }
 
 // Info is what a Jellyfin server tells anyone who asks, logged in or not.
@@ -339,19 +378,45 @@ func (c *Client) ProxyStream(w http.ResponseWriter, r *http.Request, token, id s
 	c.proxy(w, r, token, "/Videos/"+url.PathEscape(id)+"/stream", url.Values{"static": {"true"}})
 }
 
+// ProxyAudio forwards the sound of an item as stereo MP3, starting startMs
+// into it. It is for videos whose own audio a browser cannot decode: the
+// browser plays the picture from the original file and this on the side.
+// Jellyfin makes the MP3 while it is being read, so Range requests do not
+// work: to jump elsewhere, ask for another start.
+//
+// Jellyfin names a transcode after its settings, not its start time, and hands
+// back the earlier one for a later request. A play session of its own makes
+// every request a new transcode.
+func (c *Client) ProxyAudio(w http.ResponseWriter, r *http.Request, token, id string, startMs int64) {
+	c.proxyWith(w, r, token, "/Audio/"+url.PathEscape(id)+"/stream.mp3", url.Values{
+		"MediaSourceId":               {id},
+		"AudioCodec":                  {"mp3"},
+		"AudioBitRate":                {"192000"},
+		"MaxAudioChannels":            {"2"},
+		"TranscodingMaxAudioChannels": {"2"},
+		"StartTimeTicks":              {strconv.FormatInt(startMs*ticksPerMs, 10)},
+		"PlaySessionId":               {rand.Text()},
+	}, "Accept")
+}
+
 // ProxyImage forwards the primary poster image of an item to w.
 func (c *Client) ProxyImage(w http.ResponseWriter, r *http.Request, token, id string) {
 	c.proxy(w, r, token, "/Items/"+url.PathEscape(id)+"/Images/Primary", url.Values{"maxHeight": {"400"}})
 }
 
 func (c *Client) proxy(w http.ResponseWriter, r *http.Request, token, path string, query url.Values) {
+	c.proxyWith(w, r, token, path, query, "Range", "If-Range", "If-None-Match", "Accept")
+}
+
+// proxyWith is proxy, passing on only the named request headers.
+func (c *Client) proxyWith(w http.ResponseWriter, r *http.Request, token, path string, query url.Values, forward ...string) {
 	target := c.endpoint(path, query)
 	rp := &httputil.ReverseProxy{
 		Rewrite: func(pr *httputil.ProxyRequest) {
 			// Start from a clean header set so the caller's Cliparr
 			// credentials are never forwarded to Jellyfin.
 			out := http.Header{"Authorization": {c.authHeader(token)}}
-			for _, h := range []string{"Range", "If-Range", "If-None-Match", "Accept"} {
+			for _, h := range forward {
 				if v := pr.In.Header.Get(h); v != "" {
 					out.Set(h, v)
 				}

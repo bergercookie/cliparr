@@ -46,6 +46,8 @@ expect("library", request(jellyfin, "POST", "/Library/VirtualFolders?name=Movies
                           library, headers))
 
 
+# Harbor Lights, and Dolby Dreams with the audio browsers cannot play.
+EXPECTED_MOVIES = 2
 attempts = 0
 
 
@@ -53,7 +55,7 @@ def scanned():
     global attempts
     status, items = request(jellyfin, "GET", "/Items?Recursive=true&IncludeItemTypes=Movie", headers=headers)
     found = items["Items"] if status == 200 else []
-    if found and all(item.get("RunTimeTicks") for item in found):
+    if len(found) >= EXPECTED_MOVIES and all(item.get("RunTimeTicks") for item in found):
         return found
     attempts += 1
     if attempts % 15 == 0:  # the first scan can be missed while Jellyfin is still starting up
@@ -67,7 +69,7 @@ def what_jellyfin_sees() -> str:
 
 
 try:
-    movies = wait_for("Jellyfin to scan and probe the sample movie", scanned, timeout=180)
+    movies = wait_for("Jellyfin to scan and probe the sample movies", scanned, timeout=180)
 except SystemExit:
     print("Jellyfin's items at that point:", what_jellyfin_sees(), file=sys.stderr)
     raise
