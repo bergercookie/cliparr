@@ -37,6 +37,14 @@ The extension only gets access to those two addresses, never to other sites.
 
 If Cliparr is behind single sign-on, use the separate host name for apps described in [Single sign-on](sso.md#the-apps-and-the-browser-extension-cannot-do-sso). The extension cannot complete an Authelia login.
 
+## If the extension cannot reach Cliparr
+
+When you save, and with **Test connection**, the extension asks Cliparr who it is. If that fails, the page says `Cannot reach Cliparr at …`. Browsers do not say why: a wrong address, a stopped Cliparr and a certificate the browser does not trust all look the same. Firefox words every one of them as `CORS request did not succeed` with status `(null)` in its console. Cliparr is not missing any CORS header, so that message is no reason to change the server.
+
+- Check the address and port, and that Cliparr is running: open the address in a normal tab.
+- With an `https` address and a certificate from your own authority or a self-signed one (for example Caddy's `tls internal`), the tab shows a certificate warning. An extension cannot show that warning itself, so accept it once in a tab (in Firefox: Advanced, Accept the Risk and Continue), then press **Test connection** again. To avoid the warning for good, add your certificate authority to the browser; for Caddy see [Getting a certificate](reverse-proxy.md#getting-a-certificate).
+- **Press Save first** is shown when the browser has not yet allowed the extension to use that address.
+
 ## Use it
 
 1. Open a movie or episode in Jellyfin and play it. The **Bookmark** button appears at the bottom right, and fades out with Jellyfin's own controls.

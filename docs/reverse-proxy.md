@@ -76,6 +76,22 @@ curl https://cliparr.example.com/api/info
 
 Log in on the web page. Playing a clip exercises streaming and seeking through the proxy; Caddy handles both without extra settings.
 
+### If the browser shows a TLS error
+
+An error such as `SSL_ERROR_INTERNAL_ERROR_ALERT` in Firefox, or `ERR_SSL_PROTOCOL_ERROR` in Chrome, while Cliparr's log shows nothing, means the request never reached Cliparr: Caddy had no certificate for the name you opened. Ask Caddy's server directly, using the exact name from the address bar:
+
+```sh
+openssl s_client -connect cliparr.example.com:443 -servername cliparr.example.com </dev/null 2>&1 | grep -E "alert|subject="
+```
+
+A line `subject=…` means Caddy has a certificate for that name. `tlsv1 alert internal error` means it has none. Then check, in this order:
+
+1. The Caddyfile has a block for exactly that name (`cliparr.example.com { … }`) and Caddy was reloaded or restarted after you added it.
+2. A wildcard certificate covers only one more label: `*.example.com` fits `cliparr.example.com` but not `cliparr.home.example.com`. A name with an extra label needs a certificate of its own, or a wildcard for `*.home.example.com`.
+3. Getting a certificate worked: `docker compose logs caddy | grep -iE "obtain|error"` shows what Let's Encrypt or your DNS provider said.
+
+Caddy's debug log line `no OCSP stapling … no OCSP server specified in certificate` is harmless. Let's Encrypt no longer puts an OCSP address into its certificates, so Caddy has nothing to staple. It also shows that Caddy has a certificate for that name.
+
 ## Notes
 
 - **Logins stay secure automatically.** Caddy tells Cliparr the connection was HTTPS (`X-Forwarded-Proto`), and Cliparr then marks its session cookie `Secure`.
