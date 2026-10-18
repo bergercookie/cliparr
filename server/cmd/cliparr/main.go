@@ -28,6 +28,9 @@ import (
 // version is set at build time with -ldflags "-X main.version=...".
 var version = "dev"
 
+// databaseFile is the SQLite file inside the data directory.
+const databaseFile = "cliparr.db"
+
 func main() {
 	// `cliparr healthcheck` lets Docker probe the server without curl in the image.
 	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
@@ -80,7 +83,10 @@ func run(log *slog.Logger) error {
 	if err := os.MkdirAll(cfg.DataDir, 0o750); err != nil {
 		return fmt.Errorf("create data dir: %w", err)
 	}
-	st, err := store.Open(ctx, filepath.Join(cfg.DataDir, "cliparr.db"))
+	if err := checkWritable(cfg.DataDir, databaseFile); err != nil {
+		return err
+	}
+	st, err := store.Open(ctx, filepath.Join(cfg.DataDir, databaseFile))
 	if err != nil {
 		return err
 	}

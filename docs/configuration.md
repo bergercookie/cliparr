@@ -14,6 +14,27 @@ Cliparr is configured with environment variables. Only one is required.
 
 The preview pictures are small JPEG files in the `thumbnails` folder of the data directory. They can be deleted at any time; Cliparr makes them again when needed. If you run the plain binary instead of the Docker image, install `ffmpeg` so previews work.
 
+## Data folder and permissions
+
+Cliparr keeps its database and the preview pictures in `/data` inside the container. The container does not run as root: it runs as user `65532`, and that is the user who has to be allowed to write there. It does not matter which user starts `docker compose up`.
+
+- **A Docker volume** (`cliparr-data:/data`, as in the example) works as it is: Docker gives a new volume the owner of the image's `/data` folder.
+- **A folder of your own** (`./cliparr-data:/data`) belongs to you, not to user 65532, so Cliparr cannot write to it, and neither can it if Docker had to create the folder itself, which it does as root. Create the folder first, then do one of these:
+  - give it to the container's user: `sudo chown 65532:65532 cliparr-data`; or
+  - run the container as yourself: add `user: "1000:1000"` to the `cliparr` service, with your own numbers from `id -u` and `id -g`.
+
+```yaml
+services:
+  cliparr:
+    user: "1000:1000"
+    volumes:
+      - ./cliparr-data:/data
+```
+
+Do not combine `user:` with a Docker volume that was created without it: the volume belongs to 65532, so the new user cannot write to it. Use a folder you own, or remove the line.
+
+If it is wrong, Cliparr stops at startup and the log says `the data folder /data is not writable by this process (uid …, gid …)`. Version 0.1.0 shows `unable to open database file (14)` instead, for the same reason.
+
 ## Single sign-on settings
 
 Only needed when a reverse proxy such as Authelia logs users in. See [Single sign-on](sso.md) for the full setup. Set all three or none.

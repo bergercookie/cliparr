@@ -13,6 +13,10 @@ services:
     # until you choose to upgrade, or "nightly" for the development build.
     image: ghcr.io/bergercookie/cliparr:latest
     restart: unless-stopped
+    # The container runs as user 65532, whatever user starts Compose. Change it only
+    # together with the data folder below; see "Data folder and permissions" in the
+    # Configuration page of the documentation.
+    # user: "1000:1000" # your own `id -u` and `id -g`
     ports:
       # Host port first. To reach Cliparr only from the server itself (for
       # example when a reverse proxy runs next to it), use "127.0.0.1:8080:8080".
@@ -27,10 +31,11 @@ services:
       # "Open in Jellyfin web" button when the address above is an internal one.
       # CLIPARR_JELLYFIN_PUBLIC_URL: https://jellyfin.example.com
     volumes:
-      # Clips, login sessions and preview pictures. Back this volume up.
-      # To keep the data in a normal folder instead, use "./cliparr-data:/data"
-      # and run "sudo chown 65532:65532 cliparr-data" once: the container does
-      # not run as root.
+      # Clips, login sessions and preview pictures. Back this up.
+      # A Docker volume, as here, works as it is. For a folder of your own
+      # ("./cliparr-data:/data"), create it first, then either give it to the
+      # container's user (sudo chown 65532:65532 cliparr-data) or run the
+      # container as you with user: above.
       - cliparr-data:/data
 
 volumes:
