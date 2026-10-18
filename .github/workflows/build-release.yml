@@ -110,7 +110,11 @@ jobs:
         with:
           script: just upgrade-check "${{ steps.previous.outputs.apk }}" "dist/cliparr-${{ inputs.version }}.apk" ""
 
+  # Images are published last but one: if the APK, the packages or the upgrade
+  # check fail, nothing may reach ghcr.io, or a failed release would leave
+  # images behind that no GitHub release belongs to.
   docker:
+    needs: [linux, extension, android, upgrade]
     runs-on: ubuntu-latest
     permissions:
       contents: read
