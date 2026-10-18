@@ -128,6 +128,18 @@ def take(browser, base: str, out: Path, *, prefix: str, dark: bool, viewport: di
     page.keyboard.press("Enter")
     page.wait_for_timeout(1500)
     shoot(page, out, f"{prefix}new-clip-search")
+
+    # Pick the first result, mark a few seconds with the button on the video.
+    page.get_by_role("button", name="Rocky").first.click()
+    page.wait_for_timeout(3000)  # the video loads and starts by itself
+    # A full-screen invisible node covers the video's accessibility layer, so a real click
+    # on the button's node is intercepted: send the click to the node itself.
+    page.get_by_role("button", name="Start clip").dispatch_event("click")
+    page.wait_for_timeout(3000)
+    page.get_by_role("button", name="End clip").dispatch_event("click")
+    page.wait_for_timeout(500)
+    page.keyboard.press("Space")  # pause, so the play button shows on the picture
+    shoot(page, out, f"{prefix}clip-editor")
     context.close()
 
 

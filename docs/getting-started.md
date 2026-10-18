@@ -49,8 +49,10 @@ The second line means Cliparr can talk to Jellyfin; it shows Jellyfin's version.
 2. Click **Save your first clip** (later: **New clip**) and search for a movie or episode. Click a result.
 
    ![Searching the library for a movie](screenshots/new-clip-search.png)
-3. The video starts loading. Play or drag the slider to the moment you like, then click the flag next to **Start**. Move to the end and click the flag next to **End**. You can also type times such as `1:23` or `1:02:03`.
-4. Click **Preview clip** to loop the range. Adjust until it feels right.
+3. The video starts playing by itself. Click **Start clip** on the video at the moment you like, let it play on, and click **End clip** where the scene ends. The two times appear in the **Start** and **End** fields below the video, where you can also type them (such as `1:23` or `1:02:03`). Click the video or press the space bar to pause, and use the left and right arrow keys to jump five seconds.
+
+   ![The clip editor with the Start clip button on the video](screenshots/clip-editor.png)
+4. Click **Preview clip** to loop the range. Adjust the times until it feels right.
 5. Add the quote, a note about why it matters to you, and some comma-separated tags. Click **Save clip**.
 
 ![What you see before the first clip: a short explanation and a button](screenshots/first-clip.png)
