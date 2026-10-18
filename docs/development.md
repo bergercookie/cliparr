@@ -83,6 +83,15 @@ An Android update fails if the new APK has a different signing key, a different 
 
 `just upgrade-test` builds two throwaway versions of the current code (`0.0.1` and `0.0.2`, signed with a temporary key that is not the release key) and runs both checks. CI does this on every pull request. The release workflow does it again before publishing, using the APK of the previous release as `OLD`, so a release that existing users could not install never gets published.
 
+## Code quality checks
+
+Besides lint and tests (`just check`, run by `ci.yml`), the workflow `.github/workflows/code-quality.yml` runs on every push to `master`, every pull request and once a week:
+
+- **CodeQL** reads the Go server, the extension and script JavaScript, and the workflow files themselves for security problems and common bugs. It uses the `security-and-quality` query set. Findings appear under *Security*, *Code scanning* on GitHub, and on the pull request that causes them. It reports; it does not block a merge unless you add a branch protection rule for it.
+- **Dependency review** (pull requests only) fails the check when a pull request adds a Go module, Dart package or action that has a known high-severity vulnerability. `govulncheck` in `ci.yml` covers the vulnerabilities already in the code.
+
+CodeQL needs GitHub's runners, so there is no local `just` recipe for it. The closest local check is `just lint-go`, whose golangci-lint includes the gosec security rules.
+
 ## Coverage reports
 
 CI uploads coverage to [Codecov](https://about.codecov.io/), which comments on pull requests and serves the README badge. One-time setup: sign in to Codecov with GitHub, enable this repository, and add the upload token as the repository secret `CODECOV_TOKEN`. Until then the upload is skipped and CI still passes. Coverage also appears in each CI run's summary.

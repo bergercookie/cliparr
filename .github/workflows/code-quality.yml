@@ -1,0 +1,68 @@
+name: Code quality
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  schedule:
+    # Weekly, so new CodeQL queries and security advisories show up without a code change.
+    - cron: "23 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: code-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+# Unlike ci.yml this does not go through `just`: CodeQL has to watch the build
+# it analyses, and the dependency check needs the pull request's context.
+# Linting and the unit tests stay in ci.yml.
+jobs:
+  codeql:
+    name: CodeQL (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # to upload the findings to the Security tab
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: go
+            build-mode: manual
+          - language: javascript-typescript # the browser extension and the scripts
+            build-mode: none
+          - language: actions # the workflows themselves
+            build-mode: none
+    steps:
+      - uses: actions/checkout@v7
+      - if: matrix.language == 'go'
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: server/go.mod
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          queries: security-and-quality
+      # The server embeds the web app from a folder that holds only a placeholder
+      # until `just build-web` runs, so a plain build is enough for analysis.
+      - if: matrix.language == 'go'
+        working-directory: server
+        run: go build ./...
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:${{ matrix.language }}
+
+  # Fails a pull request that adds a dependency with a known serious vulnerability
+  # (Go modules, Dart packages and GitHub Actions are all covered).
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/dependency-review-action@v4.9.0
+        with:
+          fail-on-severity: high

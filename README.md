@@ -5,6 +5,7 @@
 # Cliparr
 
 [![CI](https://github.com/bergercookie/cliparr/actions/workflows/ci.yml/badge.svg)](https://github.com/bergercookie/cliparr/actions/workflows/ci.yml)
+[![Code quality](https://github.com/bergercookie/cliparr/actions/workflows/code-quality.yml/badge.svg)](https://github.com/bergercookie/cliparr/actions/workflows/code-quality.yml)
 [![codecov](https://codecov.io/gh/bergercookie/cliparr/graph/badge.svg)](https://codecov.io/gh/bergercookie/cliparr)
 [![Latest release](https://img.shields.io/github/v/release/bergercookie/cliparr)](https://github.com/bergercookie/cliparr/releases/latest)
 
